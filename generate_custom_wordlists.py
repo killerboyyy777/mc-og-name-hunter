@@ -47,6 +47,7 @@ def _init_banned_words() -> None:
         # Explicit content / sexual
         "porn", "porno", "xxx", "sex", "sexy", "nude", "naked",
         "erotic", "fetish", "kink", "bdsm",
+        "herpes",
         # Sexual violence / extreme
         "rape", "rapist", "raping", "molest", "molester", "pedo", "pedophile",
         "cp", "csam", "childporn",
@@ -55,6 +56,7 @@ def _init_banned_words() -> None:
         "anus", "asshole", "butthole", "nipple", "erection", "sperm",
         "tits", "tit", "boobs", "boob", "playboy",
         "milf", "dildo", "bondage", "genital",
+        "semen", "testicles",
         # Homophobic slurs and common leet/abbreviated variants (Mojang blocks these)
         "fag", "faggot", "fuc", "fck", "fvk", "f4g",
         # Sexual acts / prostitution
@@ -62,6 +64,7 @@ def _init_banned_words() -> None:
         "hooker", "hookers", "escort", "escorts",
         "suck", "sucked", "sucking", "blowjob", "handjob", "rimjob",
         "masturbate", "masturbation", "orgasm", "cum", "cumming",
+        "orgy", "shag",
         # Violence / weapons
         "slaughter", "murder", "murderer", "assassin", "assassinate",
         "massacre", "genocide", "violence", "violent",
@@ -79,6 +82,7 @@ def _init_banned_words() -> None:
         "assclown", "asspirin", "bastard", "bitchass", "bullshit", "crap",
         "dickhead", "dickwipe", "fuckface", "fuckhead", "motherfucker",
         "shithead", "shitfuck", "shithead",
+        "gtfo",
         # Drug references
         "drugs", "drug", "high", "stoned", "drunk", "wasted",
     ]
