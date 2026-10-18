@@ -757,8 +757,32 @@ def run_stats() -> int:
     return 0
 
 
+#: Recognized subcommands (used to detect a bare invocation).
+_COMMANDS = {"snipe", "check", "validate", "stats", "rank"}
+
+
+def _has_command(argv: list[str]) -> bool:
+    """True when argv names a known subcommand (skipping global flag values)."""
+    skip = False
+    for tok in argv:
+        if skip:
+            skip = False
+            continue
+        if tok in ("-c", "--config"):
+            skip = True
+            continue
+        if tok.startswith("-"):
+            continue
+        return tok in _COMMANDS
+    return False
+
+
 def main(argv: Optional[list[str]] = None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    # With no subcommand (e.g. double-clicking the executable), default to a
+    # snipe using config/default settings instead of erroring out.
+    if not _has_command(argv) and not any(a in ("-h", "--help") for a in argv):
+        argv = ["snipe", *argv]
     try:
         settings = load_config(find_config_path(argv))
     except (FileNotFoundError, ValueError) as e:

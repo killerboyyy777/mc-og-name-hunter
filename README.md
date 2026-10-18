@@ -27,7 +27,7 @@ pip install -r requirements.txt
 
 ### Prebuilt executable (Windows)
 
-Download `mc-og-name-hunter.exe` from the [latest release](https://github.com/killerboyyy777/mc-og-name-hunter/releases/latest) and run it directly - no Python install required. The executable bundles the word lists and the English frequency data, so it runs standalone. Results (`data/available.txt`, `data/checked.db`) and an optional `config.yaml` are read/written in the directory you launch it from.
+Download `mc-og-name-hunter.exe` from the [latest release](https://github.com/killerboyyy777/mc-og-name-hunter/releases/latest) and run it directly - no Python install required. The executable bundles the word lists and the English frequency data, so it runs standalone. Results (`data/available.txt`, `data/checked.db`) and an optional `config.yaml` are read/written in the directory you launch it from. Launching it with no arguments starts a default snipe (all tiers, 5 hits, verification auto-disabled when `MOJANG_ACCESS_TOKEN` is unset).
 
 ```powershell
 .\mc-og-name-hunter.exe snipe --hits 5 --tiers top,og --no-verify
@@ -72,6 +72,8 @@ python main.py --config my.yaml snipe --hits 10
 unless they set their own `check.batch_size` / `validate.batch_size`.
 
 ## Usage
+
+Omitting the subcommand defaults to `snipe` with config/default settings, so `python main.py` (or double-clicking the executable) starts a snipe run.
 
 ### Snipe for rare names
 
