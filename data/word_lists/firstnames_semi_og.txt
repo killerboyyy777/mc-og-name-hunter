@@ -1,0 +1,6 @@
+christopher	4.22
+ava	3.49
+isabella	3.49
+kimberly	3.40
+abigail	3.38
+zachary	3.22

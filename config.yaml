@@ -1,0 +1,42 @@
+# mcusersnipe configuration.
+#
+# CLI flags always override the values set here, and anything omitted falls
+# back to the built-in defaults in src/config.py. Copy this file to customise
+# a run, or point at another file with `--config PATH`.
+
+generation:
+  tiers: "top,og,semi_og"   # comma-separated: top, og, semi_og
+  max_candidates: 50000     # upper bound on candidates generated per run
+  min_points: 0             # skip candidates below this rarity score (0-80); 35 = OG+
+  min_length: 3
+  max_length: 16
+
+checking:
+  public_api: "https://api.mojang.com/users/profiles/minecraft/"
+  auth_api: "https://api.minecraftservices.com/minecraft/profile/name/"
+  verify_auth: true         # verify public hits against the auth API
+  batch_size: 50            # usernames per async batch (all commands)
+  concurrency: 10           # max concurrent requests (all commands)
+
+rate_limit:
+  requests_per_second: 3.0
+  burst: 10
+  backoff_base_seconds: 2.0
+
+snipe:
+  hits: 5                   # stop after N verified available names
+  output: "data/available.txt"
+  tui: false                # live-updating TUI display
+  wordlists: []             # e.g. ["halloween.txt:og", "short_all_3_4.txt:top"]
+
+check:
+  output: "data/available.txt"
+  # batch_size / concurrency inherit from checking.* unless set here
+
+validate:
+  max: 1000                 # max unvalidated rows to recheck, rarest first
+  output: "data/available.txt"
+  # batch_size / concurrency inherit from checking.* unless set here
+
+storage:
+  db_path: "data/checked.db"

@@ -1,0 +1,9 @@
+# Normalize line endings: store LF in the repo, keep files consistent across OSes.
+* text=auto eol=lf
+
+# Binary files (never diff/merge as text)
+*.db binary
+*.sqlite binary
+*.png binary
+*.jpg binary
+*.ico binary
