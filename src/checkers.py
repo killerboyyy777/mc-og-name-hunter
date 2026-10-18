@@ -110,7 +110,7 @@ class AsyncPublicChecker:
             self._session = aiohttp.ClientSession(
                 timeout=timeout,
                 connector=connector,
-                headers={"User-Agent": "mcusersnipe/1.0"}
+                headers={"User-Agent": "mc-og-name-hunter/1.0"}
             )
         return self._session
     
@@ -512,7 +512,7 @@ class AsyncAuthChecker:
                 timeout=timeout,
                 headers={
                     "Authorization": f"Bearer {self.access_token}",
-                    "User-Agent": "mcusersnipe/1.0"
+                    "User-Agent": "mc-og-name-hunter/1.0"
                 }
             )
         return self._session

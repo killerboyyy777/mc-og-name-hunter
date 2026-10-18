@@ -1,4 +1,4 @@
-# mcusersnipe configuration.
+# mc-og-name-hunter configuration.
 #
 # CLI flags always override the values set here, and anything omitted falls
 # back to the built-in defaults in src/config.py. Copy this file to customise

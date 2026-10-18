@@ -25,6 +25,14 @@ cd mc-og-name-hunter
 pip install -r requirements.txt
 ```
 
+### Prebuilt executable (Windows)
+
+Download `mc-og-name-hunter.exe` from the [latest release](https://github.com/killerboyyy777/mc-og-name-hunter/releases/latest) and run it directly - no Python install required. The executable bundles the word lists and the English frequency data, so it runs standalone. Results (`data/available.txt`, `data/checked.db`) and an optional `config.yaml` are read/written in the directory you launch it from.
+
+```powershell
+.\mc-og-name-hunter.exe snipe --hits 5 --tiers top,og --no-verify
+```
+
 ## Configuration
 
 Settings live in `config.yaml` and are resolved in this order (highest wins):
@@ -220,22 +228,20 @@ Based on mcindex.gg research using Zipf frequency from SUBTLEX-US:
 | **OG** | Zipf ≥3.5, ≤10 chars | 60 | harbor, swift, wander |
 | **SEMI-OG** | Zipf ≥2.5, ≤16 chars | 35 | wandered, meticulous |
 
-Scoring: Base tier points + length bonus (shorter = rarer)
+Scoring is by community points (higher = rarer); names with equal points are
+ordered by shorter length, then by tier.
 
 Ranking (exports, top-5 hits, validation order) follows community consensus
 (mcindex.gg classes, Hypixel OG guides, NameMC) via points, highest first:
 top word 80 > OG word 60 > 3-letter pronounceable 52 > 3-letter
 random/digits 45 > 3-char mixed 40 > semi-OG 35 (incl. plurals, past tense,
 `-ing` forms) > 4-letter pronounceable 20 > minor variants like
-`_Shadow`/`Sh4dow`/compounds 12 > 4-letter random 8 > 4-char mixed 5 >
+`_Shadow`/`Sh4dow`/compounds 12 > 4-letter random 8 > 4-char mixed 2 >
 word + trailing digits/level (`Shadow7`, `sharpnessV`) or readable handles
-3 > 0. Ties break toward shorter names. Capitals never matter. Points are
-stored per row in SQLite (`rarity_points`, backfilled automatically), so
-older database rows are already reordered by the new system.
-
-Ranking (exports, top-5 hits, validation order): **any name containing a
-digit always ranks below every digit-free name; shorter names always rank
-above longer ones;** ties break by tier (TOP > OG > SEMI-OG).
+3 > 0. Capitals never matter. Points are stored per row in SQLite
+(`rarity_points`, backfilled automatically), so older database rows are
+already reordered by the new system. Final ordering is by points (highest
+first), then shorter length, then tier (TOP > OG > SEMI-OG).
 
 ## API Endpoints
 
@@ -347,6 +353,15 @@ Check progress:
 tail -f snipe.log
 python main.py stats
 ```
+
+## Building a standalone executable
+
+```bash
+pip install pyinstaller
+pyinstaller --noconfirm --clean mc-og-name-hunter.spec
+```
+
+The single-file executable is written to `dist/mc-og-name-hunter.exe`. The spec (`mc-og-name-hunter.spec`) bundles the word lists from `data/word_lists` plus only the English `wordfreq` data (the rarity model is English-only), keeping the build compact. Frozen builds locate their bundled assets through `src/paths.py`.
 
 ## License
 

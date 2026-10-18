@@ -1,4 +1,4 @@
-"""Main entry point for mcusersnipe."""
+"""Main entry point for mc-og-name-hunter."""
 
 import sys
 from src.cli import main

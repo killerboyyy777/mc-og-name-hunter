@@ -778,28 +778,28 @@ def main(argv: Optional[list[str]] = None):
     )
 
     parser = argparse.ArgumentParser(
-        description="mcusersnipe - Find rare available Minecraft usernames",
+        description="mc-og-name-hunter - Find rare available Minecraft usernames",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         parents=[common],
         epilog="""
 Examples:
   # Snipe for 5 verified available names from top/og tiers
-  mcusersnipe snipe --hits 5 --tiers top,og
+  python main.py snipe --hits 5 --tiers top,og
 
   # Use a custom config file (flags still override it)
-  mcusersnipe --config my.yaml snipe --hits 10
+  python main.py --config my.yaml snipe --hits 10
 
   # Snipe with async batch processing (faster)
-  mcusersnipe snipe --hits 10 --tiers top,og,semi_og --batch-size 100
+  python main.py snipe --hits 10 --tiers top,og,semi_og --batch-size 100
 
   # Check a custom wordlist
-  mcusersnipe check --input mylist.txt --output available.txt
+  python main.py check --input mylist.txt --output available.txt
 
   # Rate usernames without API calls
-  mcusersnipe rank dog Sh4dow xqy
+  python main.py rank dog Sh4dow xqy
 
   # Show enhanced statistics
-  mcusersnipe stats
+  python main.py stats
 
 Values are resolved in this order (highest wins): CLI flags > config file
 (config.yaml, or --config PATH) > built-in defaults.

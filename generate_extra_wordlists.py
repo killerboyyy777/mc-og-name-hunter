@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate extra proper-noun word lists for mcusersnipe.
+"""Generate extra proper-noun word lists for mc-og-name-hunter.
 
 Categories: franchise/game characters, Minecraft ecosystem, brands, music
 artists, sports, famous people, astronomy, and chemistry/minerals.
@@ -69,7 +69,7 @@ def is_valid(name: str) -> bool:
 
 
 def _http_json(url: str):
-    req = urllib.request.Request(url, headers={"User-Agent": "mcusersnipe-gen"})
+    req = urllib.request.Request(url, headers={"User-Agent": "mc-og-name-hunter-gen"})
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.load(r)
 

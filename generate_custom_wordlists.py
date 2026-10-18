@@ -738,7 +738,7 @@ def _roman(number: int) -> str:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate custom word lists for mcusersnipe."
+        description="Generate custom word lists for mc-og-name-hunter."
     )
     parser.add_argument(
         "--official-version",

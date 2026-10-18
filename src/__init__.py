@@ -1,1 +1,1 @@
-# mcusersnipe package
+# mc-og-name-hunter package
