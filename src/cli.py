@@ -769,9 +769,18 @@ def main(argv: Optional[list[str]] = None):
         """Resolve a config value (config file merged over built-in defaults)."""
         return get_config_value(settings, key, fallback)
 
+    # Shared option so --config works both before AND after the subcommand.
+    # SUPPRESS keeps it from clobbering a value parsed at the top level.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument(
+        "--config", "-c", default=argparse.SUPPRESS,
+        help="Path to a YAML config file (default: config.yaml if present)",
+    )
+
     parser = argparse.ArgumentParser(
         description="mcusersnipe - Find rare available Minecraft usernames",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        parents=[common],
         epilog="""
 Examples:
   # Snipe for 5 verified available names from top/og tiers
@@ -799,14 +808,10 @@ Environment:
   MOJANG_ACCESS_TOKEN  - Microsoft/Minecraft access token for auth verification
         """
     )
-    parser.add_argument(
-        "--config", "-c", default=None,
-        help="Path to a YAML config file (default: config.yaml if present)",
-    )
     subparsers = parser.add_subparsers(dest="command", required=True)
     
     # Snipe command
-    snipe_parser = subparsers.add_parser("snipe", help="One-shot snipe for rare names")
+    snipe_parser = subparsers.add_parser("snipe", parents=[common], help="One-shot snipe for rare names")
     snipe_parser.add_argument(
         "--hits", "-n", type=int, default=cfg("snipe.hits", 5),
         help="Stop after N verified available names (default: 5)"
@@ -861,7 +866,7 @@ Environment:
     )
     
     # Check command
-    check_parser = subparsers.add_parser("check", help="Check usernames from a file")
+    check_parser = subparsers.add_parser("check", parents=[common], help="Check usernames from a file")
     check_parser.add_argument("--input", "-i", required=True, help="Input file (one username per line)")
     check_parser.add_argument("--output", "-o", default=cfg("check.output", "data/available.txt"), help="Output file")
     check_parser.add_argument("--no-verify", action="store_true", default=not cfg("checking.verify_auth", True), help="Skip auth verification")
@@ -871,6 +876,7 @@ Environment:
     # Validate command
     validate_parser = subparsers.add_parser(
         "validate",
+        parents=[common],
         help="Revalidate suspect public AVAILABLE rows against canonical Mojang",
     )
     validate_parser.add_argument(
@@ -882,12 +888,12 @@ Environment:
     validate_parser.add_argument("--output", "-o", default=cfg("validate.output", "data/available.txt"), help="Output file")
     
     # Stats command
-    stats_parser = subparsers.add_parser("stats", help="Show storage statistics")
+    stats_parser = subparsers.add_parser("stats", parents=[common], help="Show storage statistics")
     stats_parser.add_argument("--detailed", action="store_true", help="Show detailed endpoint stats")
     
     # Rank command
     rank_parser = subparsers.add_parser(
-        "rank", help="Rate username(s) with the community rarity model (no API calls)"
+        "rank", parents=[common], help="Rate username(s) with the community rarity model (no API calls)"
     )
     rank_parser.add_argument(
         "usernames", nargs="+", help="One or more usernames to rate"

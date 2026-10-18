@@ -87,7 +87,7 @@ python main.py check --input mylist.txt --output available.txt --no-verify
 
 ### Snipe custom wordlists (with rarity tiers)
 
-Two custom lists ship in `data/word_lists/` and can be checked
+Curated lists ship in `data/word_lists/` and any of them can be checked
 *before* the built-in tiers via `--wordlist PATH[:TIER]` (repeatable):
 
 ```bash
@@ -265,7 +265,7 @@ Files in `data/word_lists/`:
 - `digits_all_3.txt` (1,000 names: all 3-digit combos `000`–`999`)
 - `underscore_pairs_3.txt` (2,028 names: `ab_`, `_ab`, `a_b` patterns)
 - `faces.txt` (face emoticons like `o_o`, `x_x` — a community OG exception)
-- `gaming_terms.txt` (~50 well-known gaming terms: `clutch`, `noscope`, `smurf`…)
+- `gaming_terms.txt` (~410 well-known gaming terms: `clutch`, `noscope`, `smurf`…)
 - `german.txt` (~16,700 common German words — an explicit semi-OG class)
 - `halloween.txt` (~150 spooky/Halloween words)
 - `minecraft_items.txt` (~2,890 names: hand-curated blocks, items, tools, armor, food, mobs, discs, enchantments (incl. in-game Roman level variants like `sharpnessV`/`sharpness_V`), villager professions, splash texts, generic game words like `armor`/`biome`/`spawn`, jockey mechanics like `chicken_jockey`, wood-type/wool-color/material×tool expansions, **plus every name from the PrismarineJS minecraft-data 26.1 registry** — items, blocks, entities, enchantments, effects, biomes)
