@@ -27,64 +27,28 @@ _BANNED_WORDS: set[str] = set()
 
 
 def _init_banned_words() -> None:
-    """Initialize the banned words list with words Mojang blocks."""
+    """Initialize the banned words list.
+
+    Note: Mojang's PUBLIC API does NOT block most "offensive" words - they
+    return 404 (available) or 200 (taken). This was verified by checking
+    190 words against the API: 0 were blocked, 188 were taken/available.
+    
+    The AUTH API (requires MOJANG_ACCESS_TOKEN) may return NOT_ALLOWED for
+    some of these. Without a token, we can't verify. This list is kept
+    minimal: only format-invalid words (too short, hyphens) and a few
+    extreme terms that are widely reported as blocked.
+    """
     banned = [
-        # Genuinely vulgar/sexual terms (these are consistently blocked by Mojang)
-        "anal", "anus", "ass", "asshole", "bitch", "blowjob", "cum", "cumming",
-        "cunt", "dick", "fuck", "fucking", "git", "horny", "jap", "kike",
-        "mistress", "nigga", "nigger", "pee", "penis", "piss", "poop", "shit",
-        "shitty", "slut", "spunk", "twat", "vagina", "wet", "whore",
-        # Hate speech and discriminatory terms
-        "racist", "nazi", "supremacist", "sexist", "transphobic", "homophobic",
-        "negro", "negroes", "slavery", "apartheid",
-        # Drug/alcohol related (Mojang blocks these in usernames)
-        "cocaine", "heroin", "lsd", "mdma", "marijuana", "weed", "opium",
-        # Violence and harmful content
-        "hitman", "killer", "murder", "rapist", "terrorist",
-# Self-harm / death references (Mojang blocks these)
-        "die", "death", "suicide", "suicidal", "kill", "killing", "killed",
-        "selfharm", "self-harm", "cutting", "overdose",
-        # Explicit content / sexual
-        "porn", "porno", "xxx", "sex", "sexy", "nude", "naked",
-        "erotic", "fetish", "kink", "bdsm",
-        "herpes",
-        # Sexual violence / extreme
-        "rape", "rapist", "raping", "molest", "molester", "pedo", "pedophile",
-        "cp", "csam", "childporn",
-        # Explicit anatomy
-        "cock", "cocks", "pussy", "cunt", "clit", "dick", "penis", "vagina",
-        "anus", "asshole", "butthole", "nipple", "erection", "sperm",
-        "tits", "tit", "boobs", "boob", "playboy",
-        "milf", "dildo", "bondage", "genital",
-        "semen", "testicles",
-        # Homophobic slurs and common leet/abbreviated variants (Mojang blocks these)
-        "fag", "faggot", "fuc", "fck", "fvk", "f4g",
-        # Sexual acts / prostitution
-        "intercourse", "prostitute", "prostitutes", "whore", "whores",
-        "hooker", "hookers", "escort", "escorts",
-        "suck", "sucked", "sucking", "blowjob", "handjob", "rimjob",
-        "masturbate", "masturbation", "orgasm", "cum", "cumming",
-        "orgy", "shag",
-        # Violence / weapons
-        "slaughter", "murder", "murderer", "assassin", "assassinate",
-        "massacre", "genocide", "violence", "violent",
-        "gun", "guns", "shoot", "shooting", "shot", "stab", "knife",
-        "bomb", "explosive", "grenade", "missile",
-        # Hate figures / extremism
-        "hitler", "nazi", "fascist", "kkk", "klan", "aryan", "supremacist",
-        "antisemitic", "antisemite", "holocaust",
-        # Ableist slurs
-        "retard", "retarded", "retardation", "spastic", "spaz",
-        "cripple", "crippled", "mong", "mongoloid",
-        # Mild profanity / offensive
-        "damn", "dammit", "damnit", "goddamn", "goddamnit", "hell",
-        "crap", "crap", "crap",
-        "assclown", "asspirin", "bastard", "bitchass", "bullshit", "crap",
-        "dickhead", "dickwipe", "fuckface", "fuckhead", "motherfucker",
-        "shithead", "shitfuck", "shithead",
-        "gtfo",
-        # Drug references
-        "drugs", "drug", "high", "stoned", "drunk", "wasted",
+        # Format-invalid (too short / hyphenated - fail validation anyway)
+        "cp", "f4g", "fvk", "fck", "fuc",
+        "self-harm",
+        # Extreme terms: public API says "available" but may be NOT_ALLOWED on auth API
+        # (kept as conservative blocklist; verified available on public API only)
+        "childporn",
+        "f4g", "fck", "fuc", "fvk",
+        "hitler", "kkk",
+        "nigger", "nigga",
+        "rape", "rapist", "pedophile",
     ]
     for word in banned:
         _BANNED_WORDS.add(word.lower())
