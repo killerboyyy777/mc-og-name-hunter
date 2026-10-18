@@ -3,13 +3,14 @@
 from pathlib import Path
 from typing import Generator, Optional
 from src.models import UsernameCandidate, RarityTier, rarity_points
+from src.paths import default_wordlist_dir
 
 
 class WordListLoader:
     """Load and manage word lists from files."""
     
-    def __init__(self, base_path: str = "data/word_lists"):
-        self.base_path = Path(base_path)
+    def __init__(self, base_path: Optional[str] = None):
+        self.base_path = Path(base_path or default_wordlist_dir())
         self._cache: dict[str, list[tuple[str, float]]] = {}
     
     def load_tier(self, tier: RarityTier) -> list[tuple[str, float]]:
