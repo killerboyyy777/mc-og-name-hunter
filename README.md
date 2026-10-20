@@ -9,9 +9,10 @@ A fast, clean Minecraft username sniper that searches for rare available usernam
 - **Canonical Mojang authority** - Only `api.mojang.com/users/profiles/minecraft/` decides public availability; mirrors are hints and must be canonically confirmed
 - **Trusted exports** - Exports contain only auth-verified hits or canonical-confirmed public hits
 - **Validation command** - Revalidates suspect legacy public positives against canonical Mojang
-- **Rarity tiers** - TOP (80pts), OG (60pts), SEMI-OG (35pts) based on word frequency (Zipf)
+- **Rarity tiers** - TOP (80pts), OG (60pts), SEMI-OG (35pts) from English word frequency (Zipf) plus curated themed overrides
 - **Config file** - All settings in `config.yaml`; CLI flags override it, built-in defaults are sane
 - **Rarity gate** - `--min-points` skips low-value names before any API call
+- **Supplemental themed lists** - Multilingual words, names, geography, nature, mythology/Latin, Wordle, tech, food, music, sports, space, Minecraft creators/meta, brands and compound names, with curated rarity overrides
 - **Persistent storage** - SQLite tracks checked usernames, prevents re-checking across runs
 - **Smart re-check** - Only re-checks if previously checked at lower priority tier; errors are always rechecked
 - **Rate limiting** - Token bucket (1.5 req/s, burst 10) with state persistence; authenticated audits are paced to Mojang's 20-per-5-minute limit
@@ -62,7 +63,7 @@ python main.py --config my.yaml snipe --hits 10
 | `snipe.hits` | `5` | Stop after N hits |
 | `snipe.output` | `data/available.txt` | Export path |
 | `snipe.tui` | `false` | Live TUI display |
-| `snipe.wordlists` | `[]` | Custom lists checked first |
+| `snipe.wordlists` | `[]` | Custom lists checked first (e.g. `["rare_names.txt:og"]`) |
 | `check.output` | `data/available.txt` | `check` export path |
 | `validate.max` | `1000` | Unvalidated rows to recheck |
 | `validate.output` | `data/available.txt` | `validate` export path |
@@ -78,7 +79,7 @@ Omitting the subcommand defaults to `snipe` with config/default settings, so `py
 ### Snipe for rare names
 
 ```bash
-# Full exhaustive run - checks all ~50k words across all tiers
+# Full exhaustive run over the built-in tier corpus (~50k words)
 python main.py snipe --hits 10000 --max-candidates 50000 --tiers top,og,semi_og --no-verify --batch-size 50 --concurrency 10
 
 # Quick run - stop after 5 available hits from top+og tiers
@@ -123,7 +124,20 @@ python main.py snipe --hits 20 --tiers semi_og --no-verify \
   --wordlist underscore_pairs_3.txt:top \
   --wordlist german.txt:semi_og \
   --wordlist gaming_terms.txt:og
+
+# Themed lists: 41k OG+ names from multilingual, first/surnames, geography,
+# nature, mythology, Wordle, tech, food, music, sports, space and Minecraft
+python main.py snipe --hits 50 --tiers top,og --no-verify \
+  --wordlist rare_names.txt:og
+
+# Refresh the themed lists (uses data/themed_cache for offline reruns)
+python generate_themed_wordlists.py
+python generate_themed_wordlists.py --offline
 ```
+
+Themed names are scored through `data/word_lists/rarity_overrides.tsv`, so a
+foreign word such as `perro`, `sakura` or `zhongguo` is treated as OG (60)
+instead of falling back to the English frequency model.
 
 Bare filenames resolve against `data/word_lists/`; absolute or
 subdirectory paths work too. Without `:TIER`, lists default to SEMI_OG.
@@ -167,6 +181,15 @@ Outputs in `data/`:
 - `wordlist_audit.csv` - resumable per-word results (git-ignored)
 - `wordlist_banned.txt` - confirmed `NOT_ALLOWED` words (auto-loaded by the banlist)
 - `wordlist_available.txt` - available words, rarest first (git-ignored)
+
+The audit auto-loads every `*.txt` file, including the themed lists, and uses
+the same `rarity_overrides.tsv` tiers as the sniper. `rarity_overrides.tsv`
+itself is not a word list (it is `.tsv`, so the audit skips it). With the
+themed lists present, `--count-only --min-points 35` reports roughly 130k
+eligible names. A fresh audit has to public-screen all of them (about 2.4h at
+the default pace); the CSV is resumable, so later runs only process new rows
+and names still awaiting auth checks. Use `--lists rare_names.txt` or another
+themed filename to audit a subset.
 
 Documented limits: public `200 req / 2 min` per IP (10 names per request) and
 auth `20 req / 5 min` per account. Defaults are `--public-rps 1.5` and
@@ -320,11 +343,43 @@ Files in `data/word_lists/`:
 - `minecraft_items.txt` (~2,890 names: hand-curated blocks, items, tools, armor, food, mobs, discs, enchantments (incl. in-game Roman level variants like `sharpnessV`/`sharpness_V`), villager professions, splash texts, generic game words like `armor`/`biome`/`spawn`, jockey mechanics like `chicken_jockey`, wood-type/wool-color/material×tool expansions, **plus every name from the PrismarineJS minecraft-data 26.1 registry** — items, blocks, entities, enchantments, effects, biomes)
 - Proper-noun lists from `generate_extra_wordlists.py`: `franchise_characters.txt`, `minecraft_ecosystem.txt`, `brands.txt`, `music_artists.txt`, `sports.txt`, `famous_people.txt`, `astronomy.txt`, `chemistry.txt` (names already present in the core corpus are dropped to avoid duplicate requests)
 
+Themed lists from `generate_themed_wordlists.py` (all words are also recorded
+in `rarity_overrides.tsv`):
+
+- `rare_names.txt` (~41.5k OG+ names) and `semi_names.txt` (~13k lower-tier
+  names) - deduped aggregates, shortest first
+- `og_multilingual_*.txt` - 33 languages via `wordfreq` (Spanish, French,
+  German, Italian, Portuguese, Dutch, Nordic, Polish, Czech, Slovak, Hungarian,
+  Romanian, Turkish, Indonesian, Malay, Vietnamese, Tagalog, Afrikaans,
+  Croatian, Serbian, Bulgarian, Ukrainian, Russian, Greek, Arabic, Persian,
+  Hindi, Japanese, Korean, Chinese, ...). Latin-script transliterations are
+  used for non-Latin scripts.
+- `og_names_first.txt` / `og_names_surnames.txt` - public first-name and
+  Census-surname datasets, filtered to 3-16 ASCII letters
+- `og_geo.txt` - countries, capitals, ISO codes, US states, Canadian
+  provinces, major cities, landmarks
+- `og_nature_*.txt` - animals, birds, fish, plants, dinosaurs
+- `og_mythology.txt` - Greek/Roman/Norse/Egyptian/Hindu/Japanese/Celtic
+  mythology plus common Latin words
+- `og_wordle.txt` - Wordle answers plus common allowed guesses
+- `og_tech.txt`, `og_food.txt`, `og_music.txt`, `og_sports.txt`,
+  `og_cosmos.txt`, `og_brands.txt` - specialist vocabulary
+- `og_mc_creators.txt`, `og_mc_meta.txt`, `og_foreign_icons.txt` - Minecraft
+  creators/SMP terms and widely recognised loanwords
+- `semi_compounds.txt` - pronounceable root+suffix handles such as
+  `ironclaw`/`frostwing` (semi-OG, 35 pts)
+
+`rarity_overrides.tsv` maps every themed word to its curated points (35/60/80).
+`src.models.rarity_points` uses `max(English model, curated tier)`, so the
+generator, prefilter, storage, display, exports and audit all agree. The file
+is bundled into the executable by the existing `data/word_lists` data entry.
+
 Regenerate with:
 ```bash
 python generate_wordlists.py        # tier lists (wordfreq-based)
 python generate_custom_wordlists.py # short combos, digits, underscores, faces, Halloween, German, Minecraft items
 python generate_extra_wordlists.py  # franchise/game, Minecraft, brands, music, sports, people, astronomy, chemistry
+python generate_themed_wordlists.py # multilingual, names, geo, nature, mythology, Wordle, tech, food, music, sports, space, MC, brands, compounds
 ```
 
 `generate_extra_wordlists.py` downloads from PokeAPI/LoL/Valorant/Overwatch
@@ -335,9 +390,12 @@ regenerated after a fresh clone (`data/word_lists/` ships the curated lists;
 ## Requirements
 
 - Python 3.10+
-- Dependencies: `requests`, `aiohttp`, `pyyaml`, `wordfreq`, `tqdm`
-- Optional: `mcauth3` (device login via `get_token.py`)
+- Core: `requests`, `aiohttp`, `pyyaml`, `wordfreq`, `tqdm`
+- Auth helper: `mcauth3` (device login via `get_token.py`)
+- Generator-only: `unidecode` (transliterates non-Latin word lists)
 - Build: `pyinstaller`
+
+`requirements.txt` installs the core, auth helper, and generator dependencies.
 
 ```bash
 pip install -r requirements.txt
@@ -395,7 +453,8 @@ mc-og-name-hunter/
 ├── LICENSE                       # MIT
 ├── generate_wordlists.py         # Tier word list generator
 ├── generate_custom_wordlists.py  # Short-combo / digits / items / etc. generator
-├── generate_extra_wordlists.py   # Proper-noun (franchise/brands/music/…) generator
+├── generate_extra_wordlists.py   # Proper-noun (franchise/brands/music/.) generator
+├── generate_themed_wordlists.py  # Multilingual / themed / compound lists
 ├── get_token.py                  # Device-code login -> data/mojang_token.txt
 ├── audit_wordlists.py            # Two-phase word-list audit (public + auth)
 ├── verify_banlist.py             # Re-check the banlist against the APIs
@@ -407,16 +466,18 @@ mc-og-name-hunter/
 │   ├── wordlist_available.txt    # Available words (git-ignored)
 │   ├── mojang_token.txt          # Cached access token (git-ignored)
 │   ├── mcauth.json               # Refresh-token cache (git-ignored)
-│   └── word_lists/               # Word lists by tier
+│   ├── themed_cache/             # Cached public datasets (git-ignored)
+│   └── word_lists/               # Word lists by tier + themed overrides
 └── src/
     ├── config.py                # Config loading + defaults
-    ├── models.py                # Data models (RarityTier, CheckStatus, etc.)
+    ├── models.py                # Data models + rarity overrides
     ├── storage.py               # SQLite persistence
     ├── rate_limiter.py          # Token bucket rate limiter
     ├── auth.py                  # Access-token lookup (env var + cached file)
     ├── checkers.py              # Async API checkers
     ├── generators.py            # Candidate generation
     ├── display.py               # Clean live display
+    ├── paths.py                 # Source/frozen asset paths
     └── cli.py                   # Command-line interface
 ```
 

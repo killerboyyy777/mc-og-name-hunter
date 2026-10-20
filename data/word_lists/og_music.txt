@@ -1,0 +1,12 @@
+bossa
+sitar
+tabla
+djembe
+legato
+marimba
+timpani
+tremolo
+arpeggio
+xylophone
+vibraphone
+decrescendo

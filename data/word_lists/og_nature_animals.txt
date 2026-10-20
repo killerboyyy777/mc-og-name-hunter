@@ -1,0 +1,14 @@
+guppy
+macaw
+okapi
+tapir
+gerbil
+marmot
+toucan
+meerkat
+opossum
+warthog
+aardvark
+anteater
+capybara
+mandrill

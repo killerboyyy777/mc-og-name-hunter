@@ -45,6 +45,8 @@ data/available.txt
 data/wordlist_audit.csv
 data/wordlist_available.txt
 data/*.log
+data/audit_*.out
+data/audit_*.err
 data/mojang_token.txt
 data/mcauth.json
 data/mcauth_device.json
@@ -52,3 +54,4 @@ data/mcauth_device.json
 # Local scratch / experiments
 tmp_*
 scratch/
+data/themed_cache/

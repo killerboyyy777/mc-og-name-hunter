@@ -68,7 +68,8 @@ class WordListLoader:
 
 
 def _points_to_tier(points: int) -> RarityTier:
-    if points >= 60:
+    # TOP is 80 points; 60-point words are OG, not TOP.
+    if points >= 70:
         return RarityTier.TOP
     elif points >= 35:
         return RarityTier.OG

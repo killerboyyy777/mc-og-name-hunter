@@ -4,6 +4,7 @@ import itertools
 import re
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 from datetime import datetime
 
@@ -31,6 +32,35 @@ from generate_custom_wordlists import (
     load_banned_words,
     save_banned_words,
 )
+from src.paths import resource_path
+
+
+def _load_rarity_overrides() -> dict[str, int]:
+    """Load curated ``word<TAB>points`` overrides bundled with the data files.
+
+    Supplemental lists (multilingual words, names, geography, ...) contain
+    many handles that the English ``wordfreq`` model does not know.  The
+    generator records their intended tier here so every consumer of
+    ``rarity_points`` (generation, filtering, storage, display, audit) agrees.
+    """
+    overrides: dict[str, int] = {}
+    path: Path = resource_path("data", "word_lists", "rarity_overrides.tsv")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                word, _, points = line.strip().partition("\t")
+                if not word or not points:
+                    continue
+                try:
+                    overrides[word.lower()] = int(points)
+                except ValueError:
+                    continue
+    except OSError:
+        pass
+    return overrides
+
+
+_RARITY_OVERRIDES = _load_rarity_overrides()
 
 
 def _zipf(word: str) -> float:
@@ -142,14 +172,8 @@ def _split_level_suffix(core: str) -> tuple[str, bool]:
     return core, False
 
 
-def rarity_points(username: str) -> int:
-    """Rate a username's rarity in community points (higher = rarer).
-
-    Model follows the community consensus (mcindex.gg classes, Hypixel OG
-    guides, NameMC): common short dictionary words score highest, then
-    short pronounceable names, then semi-OG words; leet spellings,
-    underscores and trailing numbers score low.
-    """
+def _base_rarity_points(username: str) -> int:
+    """English-frequency rarity model (see :func:`rarity_points`)."""
     name = username.lower()
     n = len(name)
 
@@ -209,6 +233,22 @@ def rarity_points(username: str) -> int:
         # Variants with underscore/leetspeak score lower than clean words
         return 1 if _pronounceable(flat) else 0
     return 0
+
+
+def rarity_points(username: str) -> int:
+    """Rate a username's rarity in community points (higher = rarer).
+
+    Model follows the community consensus (mcindex.gg classes, Hypixel OG
+    guides, NameMC): common short dictionary words score highest, then
+    short pronounceable names, then semi-OG words; leet spellings,
+    underscores and trailing numbers score low.
+
+    Curated supplemental lists can raise a name to a minimum tier via
+    ``data/word_lists/rarity_overrides.tsv``; the higher of the English
+    model and the curated tier wins.
+    """
+    base = _base_rarity_points(username)
+    return max(base, _RARITY_OVERRIDES.get(username.lower(), 0))
 
 
 class RarityTier(Enum):

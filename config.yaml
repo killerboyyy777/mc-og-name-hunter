@@ -27,7 +27,7 @@ snipe:
   hits: 5                   # stop after N verified available names
   output: "data/available.txt"
   tui: false                # live-updating TUI display
-  wordlists: []             # e.g. ["halloween.txt:og", "short_all_3_4.txt:top"]
+  wordlists: []             # e.g. ["rare_names.txt:og", "halloween.txt:og"]
 
 check:
   output: "data/available.txt"
