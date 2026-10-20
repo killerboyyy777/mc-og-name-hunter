@@ -3,3 +3,4 @@ aiohttp
 pyyaml
 wordfreq
 tqdm
+mcauth3

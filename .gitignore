@@ -42,7 +42,12 @@ data/checked.db
 data/checked.db-*
 data/rate_limit_state.json
 data/available.txt
+data/wordlist_audit.csv
+data/wordlist_available.txt
 data/*.log
+data/mojang_token.txt
+data/mcauth.json
+data/mcauth_device.json
 
 # Local scratch / experiments
 tmp_*

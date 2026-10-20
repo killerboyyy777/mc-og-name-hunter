@@ -3,7 +3,10 @@
 
 Build (from the repository root):
 
-    pyinstaller --noconfirm --clean mc-og-name-hunter.spec
+    python -m PyInstaller --noconfirm --clean mc-og-name-hunter.spec
+
+Use ``python -m PyInstaller`` so the build runs with the interpreter that has
+``wordfreq`` installed (the bare ``pyinstaller`` shim may point elsewhere).
 
 Output: ``dist/mc-og-name-hunter.exe`` (single file, console).
 

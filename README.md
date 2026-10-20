@@ -14,7 +14,7 @@ A fast, clean Minecraft username sniper that searches for rare available usernam
 - **Rarity gate** - `--min-points` skips low-value names before any API call
 - **Persistent storage** - SQLite tracks checked usernames, prevents re-checking across runs
 - **Smart re-check** - Only re-checks if previously checked at lower priority tier; errors are always rechecked
-- **Rate limiting** - Token bucket (3 req/s, burst 10) with state persistence
+- **Rate limiting** - Token bucket (1.5 req/s, burst 10) with state persistence; authenticated audits are paced to Mojang's 20-per-5-minute limit
 - **Graceful shutdown** - Ctrl+C finishes the current batch and saves progress; press again to force-exit
 
 ## Installation
@@ -27,7 +27,7 @@ pip install -r requirements.txt
 
 ### Prebuilt executable (Windows)
 
-Download `mc-og-name-hunter.exe` from the [latest release](https://github.com/killerboyyy777/mc-og-name-hunter/releases/latest) and run it directly - no Python install required. The executable bundles the word lists and the English frequency data, so it runs standalone. Results (`data/available.txt`, `data/checked.db`) and an optional `config.yaml` are read/written in the directory you launch it from. Launching it with no arguments starts a default snipe (all tiers, 5 hits, verification auto-disabled when `MOJANG_ACCESS_TOKEN` is unset).
+Download `mc-og-name-hunter.exe` from the [latest release](https://github.com/killerboyyy777/mc-og-name-hunter/releases/latest) and run it directly - no Python install required. The executable bundles the word lists and the English frequency data, so it runs standalone. Results (`data/available.txt`, `data/checked.db`) and an optional `config.yaml` are read/written in the directory you launch it from. Launching it with no arguments starts a default snipe (all tiers, 5 hits); auth verification is enabled automatically when a token is found in `MOJANG_ACCESS_TOKEN` or `data/mojang_token.txt`.
 
 ```powershell
 .\mc-og-name-hunter.exe snipe --hits 5 --tiers top,og --no-verify
@@ -51,12 +51,12 @@ python main.py --config my.yaml snipe --hits 10
 |-----|---------|-------------|
 | `generation.tiers` | `top,og,semi_og` | Default tiers |
 | `generation.max_candidates` | `50000` | Candidate cap per run |
-| `generation.min_points` | `0` | Rarity gate (`35` = OG+) |
+| `generation.min_points` | `25` | Rarity gate (`35` = OG+); built-in default is `0` |
 | `generation.min_length` / `max_length` | `3` / `16` | Username length bounds |
 | `checking.verify_auth` | `true` | Verify public hits via auth API |
 | `checking.batch_size` | `50` | Usernames per async batch (all commands) |
 | `checking.concurrency` | `10` | Max concurrent requests (all commands) |
-| `rate_limit.requests_per_second` | `3.0` | Token bucket refill rate |
+| `rate_limit.requests_per_second` | `1.5` | Token bucket refill rate |
 | `rate_limit.burst` | `10` | Token bucket size |
 | `rate_limit.backoff_base_seconds` | `2.0` | 429 backoff base |
 | `snipe.hits` | `5` | Stop after N hits |
@@ -84,7 +84,10 @@ python main.py snipe --hits 10000 --max-candidates 50000 --tiers top,og,semi_og 
 # Quick run - stop after 5 available hits from top+og tiers
 python main.py snipe --hits 5 --tiers top,og --no-verify
 
-# With auth verification (requires MOJANG_ACCESS_TOKEN env var)
+# With auth verification (run the device login once - see Authentication)
+python main.py snipe --hits 5 --tiers top,og
+
+# Or export a token directly
 export MOJANG_ACCESS_TOKEN=your_token
 python main.py snipe --hits 5 --tiers top,og
 ```
@@ -138,6 +141,44 @@ Public `available` rows created before canonical enforcement do not have endpoin
 
 ```bash
 python main.py stats
+```
+
+### Audit word lists (authenticated)
+
+`audit_wordlists.py` screens whole word lists against Mojang's real limits and
+separates **taken** names from **banned** ones. It uses the public batch
+endpoint first, then checks only the names that are absent with the
+authenticated availability endpoint (a taken name can never be banned):
+
+```bash
+# Count eligible words without making any API calls
+python audit_wordlists.py --count-only
+
+# Audit everything scoring 45+ (TOP + OG)
+python audit_wordlists.py --min-points 45
+
+# Restrict to specific lists, or start over instead of resuming
+python audit_wordlists.py --lists words_top.txt words_og.txt
+python audit_wordlists.py --fresh
+```
+
+Outputs in `data/`:
+
+- `wordlist_audit.csv` - resumable per-word results (git-ignored)
+- `wordlist_banned.txt` - confirmed `NOT_ALLOWED` words (auto-loaded by the banlist)
+- `wordlist_available.txt` - available words, rarest first (git-ignored)
+
+Documented limits: public `200 req / 2 min` per IP (10 names per request) and
+auth `20 req / 5 min` per account. Defaults are `--public-rps 1.5` and
+`--auth-rps 0.06`; the auth endpoint sends no `Retry-After`, so a 429 waits the
+full 5-minute window. `--skip-public` auth-checks every word (slow), `--limit N`
+caps the run, and `--count-only` reports volumes and ETAs.
+
+`verify_banlist.py` re-checks the exact-match banlist against the same APIs,
+using a separate auth limiter paced at `0.06 rps`:
+
+```bash
+python verify_banlist.py
 ```
 
 ## Command Reference
@@ -295,26 +336,54 @@ regenerated after a fresh clone (`data/word_lists/` ships the curated lists;
 
 - Python 3.10+
 - Dependencies: `requests`, `aiohttp`, `pyyaml`, `wordfreq`, `tqdm`
+- Optional: `mcauth3` (device login via `get_token.py`)
+- Build: `pyinstaller`
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Auth Verification (Optional)
+## Authentication (Optional)
 
-For highest accuracy, set a Microsoft/Minecraft access token:
+The auth API (`api.minecraftservices.com/minecraft/profile/name/{username}/available`)
+returns:
+- `AVAILABLE` - truly available
+- `DUPLICATE` - taken (including pseudo-hard-deleted)
+- `NOT_ALLOWED` - blocked by the name filter
+
+It is the only way to detect banned names. There are two ways to provide a
+token:
+
+### Device login helper (recommended)
+
+```bash
+pip install mcauth3
+python get_token.py --new    # prints a URL + code
+python get_token.py --poll   # finish after signing in
+```
+
+This caches a refresh token in `data/mcauth.json` and writes the current
+Minecraft access token to `data/mojang_token.txt`. Later runs can refresh
+silently with `python get_token.py`; the sniper reads the cached file
+automatically, so no environment variable is needed. Both token files are
+git-ignored.
+
+### Environment variable
 
 ```bash
 export MOJANG_ACCESS_TOKEN=your_access_token
 python main.py snipe --hits 5 --tiers top,og
 ```
 
-The auth API (`api.minecraftservices.com/minecraft/profile/name/{username}/available`) returns:
-- `AVAILABLE` - truly available
-- `DUPLICATE` - taken (including pseudo-hard-deleted)
-- `NOT_ALLOWED` - blocked by filter
+`MOJANG_ACCESS_TOKEN` takes precedence over the cached file. The auth endpoint
+is limited to **20 requests / 5 minutes per account**. The sniper's default
+1.5 req/s applies to the public endpoint; use `audit_wordlists.py` (0.06 rps)
+for bulk auth checks instead of hammering it.
 
-Without auth, the canonical public endpoint returns 404 (available) or 200 (taken). Public `available` results can still have false positives for blocked names, so use auth verification for final certainty whenever possible. `data/available.txt` now contains only trusted results: auth-verified hits or canonical-confirmed public hits.
+Without a token the canonical public endpoint still returns 404 (available) or
+200 (taken), but blocked names can look available. `data/available.txt`
+contains only trusted results: auth-verified hits or canonical-confirmed
+public hits.
 
 ## Project Structure
 
@@ -327,15 +396,24 @@ mc-og-name-hunter/
 ├── generate_wordlists.py         # Tier word list generator
 ├── generate_custom_wordlists.py  # Short-combo / digits / items / etc. generator
 ├── generate_extra_wordlists.py   # Proper-noun (franchise/brands/music/…) generator
+├── get_token.py                  # Device-code login -> data/mojang_token.txt
+├── audit_wordlists.py            # Two-phase word-list audit (public + auth)
+├── verify_banlist.py             # Re-check the banlist against the APIs
 ├── data/
 │   ├── checked.db                # SQLite database (created at runtime, git-ignored)
 │   ├── available.txt             # Exported trusted names (git-ignored)
+│   ├── wordlist_banned.txt       # Confirmed NOT_ALLOWED words (tracked)
+│   ├── wordlist_audit.csv        # Audit results (git-ignored, resumable)
+│   ├── wordlist_available.txt    # Available words (git-ignored)
+│   ├── mojang_token.txt          # Cached access token (git-ignored)
+│   ├── mcauth.json               # Refresh-token cache (git-ignored)
 │   └── word_lists/               # Word lists by tier
 └── src/
     ├── config.py                # Config loading + defaults
     ├── models.py                # Data models (RarityTier, CheckStatus, etc.)
     ├── storage.py               # SQLite persistence
     ├── rate_limiter.py          # Token bucket rate limiter
+    ├── auth.py                  # Access-token lookup (env var + cached file)
     ├── checkers.py              # Async API checkers
     ├── generators.py            # Candidate generation
     ├── display.py               # Clean live display
@@ -359,9 +437,13 @@ python main.py stats
 ## Building a standalone executable
 
 ```bash
-pip install pyinstaller
-pyinstaller --noconfirm --clean mc-og-name-hunter.spec
+python -m pip install pyinstaller
+python -m PyInstaller --noconfirm --clean mc-og-name-hunter.spec
 ```
+
+Use `python -m PyInstaller` rather than the bare `pyinstaller` shim: the shim
+can point at a different interpreter than the one with `wordfreq` and the other
+dependencies installed.
 
 The single-file executable is written to `dist/mc-og-name-hunter.exe`. The spec (`mc-og-name-hunter.spec`) bundles the word lists from `data/word_lists` plus only the English `wordfreq` data (the rarity model is English-only), keeping the build compact. Frozen builds locate their bundled assets through `src/paths.py`.
 

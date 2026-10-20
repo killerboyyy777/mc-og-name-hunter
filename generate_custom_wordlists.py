@@ -14,6 +14,7 @@ import argparse
 import itertools
 import json
 import string
+import sys
 import tempfile
 import urllib.request
 from pathlib import Path
@@ -24,34 +25,48 @@ from pathlib import Path
 # Note: Mojang's exact blocked list is not publicly documented, but community
 # testing has identified certain words that are consistently blocked vs. falsely blocked.
 _BANNED_WORDS: set[str] = set()
+# Subset of banned words safe to match inside longer names. Short or ambiguous
+# terms (e.g. "cum" in "document", "rape" in "grape", "nig" in "night") are
+# intentionally excluded so the exact-match list does not swallow real names.
+_BANNED_SUBSTRINGS: set[str] = set()
 
 
 def _init_banned_words() -> None:
-    """Initialize the banned words list.
+    """Initialize the exact-match and substring banlists.
 
-    Note: Mojang's PUBLIC API does NOT block most "offensive" words - they
-    return 404 (available) or 200 (taken). This was verified by checking
-    190 words against the API: 0 were blocked, 188 were taken/available.
-    
-    The AUTH API (requires MOJANG_ACCESS_TOKEN) may return NOT_ALLOWED for
-    some of these. Without a token, we can't verify. This list is kept
-    minimal: only format-invalid words (too short, hyphens) and a few
-    extreme terms that are widely reported as blocked.
+    The 55 words below were confirmed NOT_ALLOWED by the authenticated
+    Minecraft API during the wordlist audit (data/wordlist_banned.txt).
+    All are exact matches; only terms that cannot plausibly appear inside a
+    legitimate name are also treated as substrings (_BANNED_SUBSTRINGS).
     """
     banned = [
         # Format-invalid (too short / hyphenated - fail validation anyway)
-        "cp", "f4g", "fvk", "fck", "fuc",
-        "self-harm",
-        # Extreme terms: public API says "available" but may be NOT_ALLOWED on auth API
-        # (kept as conservative blocklist; verified available on public API only)
-        "childporn",
-        "f4g", "fck", "fuc", "fvk",
-        "hitler", "kkk",
-        "nigger", "nigga",
-        "rape", "rapist", "pedophile",
+        "cp", "self-harm",
+        # Confirmed NOT_ALLOWED by the authenticated API (2026-10 audit)
+        "apartheid", "asshole", "badass", "bastard", "bitch", "boobs",
+        "cocaine", "cock", "cum", "cunt", "dammit", "damn", "dick",
+        "drugs", "dumbass", "erection", "fck", "fuc", "fuck", "fucked",
+        "fucker", "fuckin", "fvk", "goddamn", "heroin", "hitler",
+        "homophobic", "hooker", "jap", "kkk", "negro", "nig", "nigga",
+        "nipples", "orgasm", "penis", "piss", "playboy", "porn",
+        "prostitute", "pussy", "racism", "rape", "rapist", "retarded",
+        "shit", "slaughter", "slavery", "slut", "sperm", "suicide",
+        "tit", "tits", "vagina", "whore",
+        # Longer forms and leet spellings kept as exact entries
+        "f4g", "nigger", "pedophile", "childporn",
     ]
     for word in banned:
         _BANNED_WORDS.add(word.lower())
+
+    _BANNED_SUBSTRINGS.update({
+        "apartheid", "asshole", "badass", "bastard", "bitch", "boobs",
+        "childporn", "cocaine", "dammit", "damn", "dumbass", "erection",
+        "fuck", "goddamn", "hitler", "homophobic", "hooker", "nigga",
+        "nigger", "nipples", "orgasm", "pedophile", "penis", "piss",
+        "playboy", "porn", "prostitute", "pussy", "racism", "retarded",
+        "shit", "slaughter", "slavery", "sperm", "suicide", "vagina",
+        "whore",
+    })
 
 _init_banned_words()
 
@@ -83,9 +98,9 @@ def is_banned(username: str) -> bool:
     # Exact match against real banned words
     if name in _BANNED_WORDS:
         return True
-    # Check if any banned word is a substring (but skip false positives)
-    for banned in _BANNED_WORDS:
-        if banned and banned in name and name not in _FALSE_POSITIVES:
+    # Substring match only against the curated, low-false-positive subset
+    for banned in _BANNED_SUBSTRINGS:
+        if banned and banned in name:
             return True
     return False
 
@@ -109,6 +124,21 @@ def save_banned_words(path: Path) -> None:
     with open(path, "w", encoding="utf-8") as f:
         for word in sorted(words_to_save):
             f.write(word + "\n")
+
+
+def _load_default_banned_file() -> None:
+    """Merge data/wordlist_banned.txt (produced by audits) into the banlist."""
+    candidates = [Path("data/wordlist_banned.txt")]
+    candidates.append(Path(__file__).resolve().parent / "data" / "wordlist_banned.txt")
+    if getattr(sys, "frozen", False):
+        candidates.append(Path(sys.executable).resolve().parent / "data" / "wordlist_banned.txt")
+    for candidate in candidates:
+        if candidate.exists():
+            load_banned_words(candidate)
+            return
+
+
+_load_default_banned_file()
 
 OFFICIAL_DATA_VERSION = "26.1"
 OFFICIAL_BASE_URL = (

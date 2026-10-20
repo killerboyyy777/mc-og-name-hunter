@@ -26,6 +26,7 @@ from src.checkers import (
 from src.generators import create_generator
 from src.config import load_config, find_config_path, get_config_value
 from src.display import CleanDisplay, SimpleLineDisplay
+from src.auth import get_access_token
 
 
 # Colors for output
@@ -200,7 +201,7 @@ async def run_snipe_async(
     # Initialize components
     storage = get_storage()
     rate_limiter = get_rate_limiter(
-        requests_per_second=get_config_value(settings, "rate_limit.requests_per_second", 3.0),
+        requests_per_second=get_config_value(settings, "rate_limit.requests_per_second", 1.5),
         burst=get_config_value(settings, "rate_limit.burst", 10),
         backoff_base=get_config_value(settings, "rate_limit.backoff_base_seconds", 2.0),
     )
@@ -214,8 +215,7 @@ async def run_snipe_async(
     
     auth_checker = None
     if config.verify_auth:
-        import os
-        access_token = os.environ.get("MOJANG_ACCESS_TOKEN")
+        access_token = get_access_token()
         if access_token:
             auth_checker = AsyncAuthChecker(
                 access_token,
@@ -223,7 +223,7 @@ async def run_snipe_async(
                 max_concurrent=5,
             )
         else:
-            print(f"{colorize('[WARN]', Colors.YELLOW)} MOJANG_ACCESS_TOKEN not set, auth verification disabled")
+            print(f"{colorize('[WARN]', Colors.YELLOW)} No access token found, auth verification disabled")
             config.verify_auth = False
     
     checker = AsyncCheckerManager(
@@ -414,12 +414,11 @@ async def run_check_wordlist_async(
     
     auth_checker = None
     if verify_auth:
-        import os
-        access_token = os.environ.get("MOJANG_ACCESS_TOKEN")
+        access_token = get_access_token()
         if access_token:
             auth_checker = AsyncAuthChecker(access_token, rate_limiter=rate_limiter)
         else:
-            print(f"{colorize('[WARN]', Colors.YELLOW)} MOJANG_ACCESS_TOKEN not set, auth verification disabled")
+            print(f"{colorize('[WARN]', Colors.YELLOW)} No access token found, auth verification disabled")
             verify_auth = False
     
     checker = AsyncCheckerManager(public_checker, auth_checker, verify_on_hit=verify_auth)
@@ -929,7 +928,7 @@ Environment:
     get_storage(cfg("storage.db_path", "data/checked.db"))
     # Seed the shared rate limiter from config so every command honours it.
     get_rate_limiter(
-        requests_per_second=cfg("rate_limit.requests_per_second", 3.0),
+        requests_per_second=cfg("rate_limit.requests_per_second", 1.5),
         burst=cfg("rate_limit.burst", 10),
         backoff_base=cfg("rate_limit.backoff_base_seconds", 2.0),
     )

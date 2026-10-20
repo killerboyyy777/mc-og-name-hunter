@@ -108,7 +108,7 @@ class RateLimiter:
     
     def __init__(
         self,
-        requests_per_second: float = 3.0,
+        requests_per_second: float = 1.5,
         burst: int = 10,
         backoff_base: float = 2.0,
         max_backoff: float = 60.0,
@@ -155,7 +155,7 @@ _rate_limiter: Optional[RateLimiter] = None
 
 
 def get_rate_limiter(
-    requests_per_second: float = 3.0,
+    requests_per_second: float = 1.5,
     burst: int = 10,
     backoff_base: float = 2.0,
 ) -> RateLimiter:

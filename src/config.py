@@ -35,7 +35,7 @@ DEFAULTS: dict[str, Any] = {
         "concurrency": 10,
     },
     "rate_limit": {
-        "requests_per_second": 3.0,
+        "requests_per_second": 1.5,
         "burst": 10,
         "backoff_base_seconds": 2.0,
     },
@@ -114,7 +114,7 @@ def find_config_path(argv: list[str]) -> str | None:
 def get_config_value(config: dict, key: str, default: Any = None) -> Any:
     """Get a nested config value using dot notation.
 
-    e.g. ``get_config_value(cfg, "rate_limit.requests_per_second", 3.0)``.
+    e.g. ``get_config_value(cfg, "rate_limit.requests_per_second", 1.5)``.
     """
     value: Any = config
     for part in key.split("."):
