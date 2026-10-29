@@ -12,11 +12,20 @@ supplemental lists from:
   space, Minecraft, brand and compound-name collections.
 
 It writes one ``*.txt`` file per theme and a single
-``rarity_overrides.tsv`` mapping every generated word to its intended
+``rarity_overrides.tsv`` mapping every generated word to its consensus
 points.  ``src.models.rarity_points`` reads that file and uses the higher
 of the English score and the curated tier, so the rest of the program
 (generation, filtering, storage, display and auditing) automatically
 agrees on the value.
+
+Scores follow the community model published by mcindex.gg (18 classes) and
+the Hypixel OG-name guides.  Common short English words are 80, common
+words / popular first names / gaming terms are 60, 3-letter shapes are
+52/45, second-tier words (including German and inflections) are 35,
+4-letter shapes are 20/8, and compounds / leetspeak / very rare words are
+12.  A word is never promoted to 80 just because it is short; foreign
+dictionary words are second-tier unless English usage makes them common
+enough for the base model to score them higher.
 
 Usage::
 
@@ -47,6 +56,7 @@ except Exception:  # pragma: no cover - wordfreq is required by the project
     zipf_frequency = None
 
 from generate_custom_wordlists import is_banned
+from src.models import _base_rarity_points
 
 
 REPO_ROOT = Path(__file__).resolve().parent
@@ -58,19 +68,21 @@ CACHE_DIR = REPO_ROOT / "data" / "themed_cache"
 GENERATED_NAMES = {"rare_names.txt", "semi_names.txt"}
 GENERATED_PREFIXES = ("og_", "semi_")
 
-# Language, number of valid words to keep, points.  Most are OG (60); short
-# words are promoted to TOP (80) by _record(short_top=True).
+# Language, number of valid words to keep, source tier.  Foreign dictionary
+# words are second-tier (35) under the community model; common English words
+# and widely recognised loanwords still score higher through the base model.
+# German is explicitly second-tier on mcindex.gg.
 MULTILINGUAL = [
-    ("es", 3000, 60), ("fr", 3000, 60), ("de", 3000, 60),
-    ("it", 2500, 60), ("pt", 2500, 60), ("nl", 2200, 60),
-    ("sv", 2000, 60), ("no", 2000, 60), ("da", 2000, 60),
-    ("fi", 1800, 60), ("pl", 2200, 60), ("cs", 1800, 60),
-    ("sk", 1500, 60), ("hu", 1800, 60), ("ro", 1800, 60),
-    ("tr", 2200, 60), ("id", 2200, 60), ("ms", 1800, 60),
-    ("vi", 1800, 60), ("tl", 1800, 60),
-    ("af", 1500, 60), ("hr", 1500, 60), ("sr", 1500, 60),
-    ("bg", 1500, 60), ("uk", 1800, 60), ("ru", 2200, 60),
-    ("el", 1500, 60), ("ar", 1800, 35), ("fa", 1500, 35),
+    ("es", 3000, 35), ("fr", 3000, 35), ("de", 3000, 35),
+    ("it", 2500, 35), ("pt", 2500, 35), ("nl", 2200, 35),
+    ("sv", 2000, 35), ("no", 2000, 35), ("da", 2000, 35),
+    ("fi", 1800, 35), ("pl", 2200, 35), ("cs", 1800, 35),
+    ("sk", 1500, 35), ("hu", 1800, 35), ("ro", 1800, 35),
+    ("tr", 2200, 35), ("id", 2200, 35), ("ms", 1800, 35),
+    ("vi", 1800, 35), ("tl", 1800, 35),
+    ("af", 1500, 35), ("hr", 1500, 35), ("sr", 1500, 35),
+    ("bg", 1500, 35), ("uk", 1800, 35), ("ru", 2200, 35),
+    ("el", 1500, 35), ("ar", 1800, 35), ("fa", 1500, 35),
     ("hi", 1500, 35), ("ja", 1200, 35), ("ko", 1200, 35),
     ("zh", 1200, 35),
 ]
@@ -612,6 +624,26 @@ def fetch(url: str, filename: str, offline: bool) -> str:
         return ""
 
 
+def consensus_points(word: str, source_points: int) -> int:
+    """Normalise a source tier against mcindex.gg's community classes.
+
+    Shortness alone is not a promotion: 3- and 4-letter words keep the base
+    shape score (52/45 and 20/8), foreign dictionary words stay second-tier
+    (35), and only common English words / names / gaming terms reach 60-80.
+    A 60-point source floor remains available for an explicitly curated set;
+    the broad foreign word list uses 35.
+    """
+    base = _base_rarity_points(word)
+    n = len(word)
+    if source_points >= 60:
+        return max(base, 60)
+    if n <= 4:
+        return base
+    if source_points <= 12:
+        return max(base, source_points)
+    return max(base, 35)
+
+
 class Builder:
     def __init__(self, out_dir: Path, existing: set[str]):
         self.out_dir = out_dir
@@ -621,13 +653,11 @@ class Builder:
         self.new_count = 0
         self.override_count = 0
 
-    def add(self, filename: str, raw: str, points: int, *, short_top: bool = False) -> bool:
+    def add(self, filename: str, raw: str, points: int) -> bool:
         word = clean_word(raw)
         if not word:
             return False
-        if short_top and points >= 60 and len(word) <= 4:
-            points = 80
-        points = max(0, min(80, points))
+        points = max(0, min(80, consensus_points(word, points)))
         previous = self.points.get(word)
         if previous is None:
             self.override_count += 1
@@ -680,28 +710,28 @@ class Builder:
 
 def add_curated(builder: Builder) -> None:
     groups = [
-        ("og_geo.txt", 60, True, (US_STATES, CA_PROVINCES, CITIES, LANDMARKS)),
-        ("og_nature_animals.txt", 60, True, (ANIMALS,)),
-        ("og_nature_birds.txt", 60, True, (BIRDS,)),
-        ("og_nature_fish.txt", 60, True, (FISH,)),
-        ("og_nature_plants.txt", 60, True, (PLANTS,)),
-        ("og_nature_dinosaurs.txt", 60, True, (DINOSAURS,)),
-        ("og_mythology.txt", 60, True, (MYTHOLOGY, LATIN)),
-        ("og_tech.txt", 60, False, (TECH,)),
-        ("og_food.txt", 60, False, (FOOD,)),
-        ("og_music.txt", 60, False, (MUSIC,)),
-        ("og_sports.txt", 60, False, (SPORTS,)),
-        ("og_cosmos.txt", 60, True, (COSMOS, COLORS)),
-        ("og_mc_creators.txt", 60, False, (MC_CREATORS,)),
-        ("og_mc_meta.txt", 60, True, (MC_META,)),
-        ("og_brands.txt", 60, False, (BRANDS, GAMES)),
-        ("og_foreign_icons.txt", 60, True, (FOREIGN_ICONS,)),
+        ("og_geo.txt", 35, (US_STATES, CA_PROVINCES, CITIES, LANDMARKS)),
+        ("og_nature_animals.txt", 35, (ANIMALS,)),
+        ("og_nature_birds.txt", 35, (BIRDS,)),
+        ("og_nature_fish.txt", 35, (FISH,)),
+        ("og_nature_plants.txt", 35, (PLANTS,)),
+        ("og_nature_dinosaurs.txt", 35, (DINOSAURS,)),
+        ("og_mythology.txt", 35, (MYTHOLOGY, LATIN)),
+        ("og_tech.txt", 35, (TECH,)),
+        ("og_food.txt", 35, (FOOD,)),
+        ("og_music.txt", 35, (MUSIC,)),
+        ("og_sports.txt", 35, (SPORTS,)),
+        ("og_cosmos.txt", 35, (COSMOS, COLORS)),
+        ("og_mc_creators.txt", 35, (MC_CREATORS,)),
+        ("og_mc_meta.txt", 35, (MC_META,)),
+        ("og_brands.txt", 35, (BRANDS, GAMES)),
+        ("semi_foreign_words.txt", 35, (FOREIGN_ICONS,)),
     ]
-    for filename, points, short_top, word_groups in groups:
+    for filename, points, word_groups in groups:
         before = len(builder.lists.get(filename, ()))
         for group in word_groups:
             for word in group:
-                builder.add(filename, word, points, short_top=short_top)
+                builder.add(filename, word, points)
         after = len(builder.lists.get(filename, ()))
         print(f"  {filename}: {after - before} new")
 
@@ -722,7 +752,7 @@ def add_multilingual(builder: Builder) -> None:
                 word = clean_word(raw)
                 if not word or len(word) > 12:
                     continue
-                builder.add(f"og_multilingual_{language}.txt", word, points, short_top=True)
+                builder.add(f"og_multilingual_{language}.txt", word, points)
                 valid += 1
         except Exception as exc:
             print(f"  ! {language}: {exc}")
@@ -742,7 +772,11 @@ def add_public_names(builder: Builder, offline: bool) -> None:
             word = clean_word(line)
             if not word:
                 continue
-            points = 60 if len(word) <= 8 else 35
+            try:
+                popularity = zipf_frequency(word, "en") if zipf_frequency else 0.0
+            except Exception:
+                popularity = 0.0
+            points = 60 if popularity >= 3.0 else 12
             if builder.add("og_names_first.txt", word, points):
                 added += 1
         print(f"  og_names_first.txt: {added} new")
@@ -769,11 +803,11 @@ def add_public_names(builder: Builder, offline: bool) -> None:
                     count = 0
                 rows.append((count, name))
             rows.sort(reverse=True)
-            for _, name in rows[:15000]:
+            for rank, (_, name) in enumerate(rows[:15000]):
                 word = clean_word(name)
                 if not word:
                     continue
-                points = 60 if len(word) <= 8 else 35
+                points = 35 if rank < 5000 else 12
                 if builder.add("og_names_surnames.txt", word, points):
                     added += 1
         except Exception as exc:
@@ -811,7 +845,7 @@ def add_countries(builder: Builder, offline: bool) -> None:
         names.extend(item.get("capital", []) or [])
         names.extend([item.get("cca2", ""), item.get("cca3", "")])
         for name in names:
-            if builder.add("og_geo.txt", name, 60, short_top=True):
+            if builder.add("og_geo.txt", name, 35):
                 added += 1
     print(f"  og_geo.txt: {added} new from REST Countries")
 
@@ -825,7 +859,7 @@ def add_wordle(builder: Builder, offline: bool) -> None:
     added = 0
     if answers:
         for line in answers.splitlines():
-            if builder.add("og_wordle.txt", line, 60):
+            if builder.add("og_wordle.txt", line, 35):
                 added += 1
     guesses = fetch(
         "https://raw.githubusercontent.com/tabatkins/wordle-list/main/words",
@@ -842,7 +876,7 @@ def add_wordle(builder: Builder, offline: bool) -> None:
                     continue
             except Exception:
                 continue
-            if builder.add("og_wordle.txt", word, 60):
+            if builder.add("og_wordle.txt", word, 35):
                 added += 1
     print(f"  og_wordle.txt: {added} new")
 
@@ -860,7 +894,7 @@ def add_compounds(builder: Builder) -> None:
                 combos.add(word)
     added = 0
     for word in sorted(combos, key=lambda w: (len(w), w))[:8000]:
-        if builder.add("semi_compounds.txt", word, 35):
+        if builder.add("semi_compounds.txt", word, 12):
             added += 1
     print(f"  semi_compounds.txt: {added} new (from {len(combos):,} combos)")
 

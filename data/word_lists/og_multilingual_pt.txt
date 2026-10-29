@@ -502,7 +502,6 @@ doenca
 doente
 dormir
 doutor
-drogas
 duvida
 edicao
 efeito
@@ -754,6 +753,7 @@ terras
 textos
 tinham
 titulo
+tomada
 tornar
 tornou
 tratar

@@ -75,7 +75,6 @@ emera
 emoun
 enose
 entos
-epano
 epese
 ergon
 ergou
@@ -86,6 +85,7 @@ etous
 giati
 ginei
 gluko
+idees
 idios
 kales
 kalos
@@ -107,6 +107,7 @@ koino
 koita
 konta
 kosmo
+kosta
 krasi
 krete
 krima
@@ -133,6 +134,7 @@ meros
 metra
 mikra
 mikre
+milao
 milas
 mneme
 molis
@@ -252,6 +254,7 @@ basika
 bathia
 bathmo
 bebaia
+bgalei
 biblia
 biblio
 binteo
@@ -266,6 +269,7 @@ dinoun
 dorean
 dromos
 duname
+dunata
 dunato
 eginan
 eidika
@@ -321,6 +325,7 @@ gnosto
 goneis
 gramme
 kairos
+kanali
 kaname
 kaneis
 kanena
@@ -335,7 +340,6 @@ kentro
 khasei
 kheria
 khoras
-khores
 khorio
 khoris
 khoros
@@ -354,7 +358,6 @@ kostas
 kratos
 kretes
 ktirio
-kuprou
 kurios
 lathos
 leipei
@@ -391,6 +394,7 @@ morphe
 mpanio
 mporei
 mprabo
+nekroi
 nekros
 niotho
 nomizo
@@ -399,6 +403,7 @@ odegei
 odegos
 omadas
 omades
+omilia
 oneiro
 opoies
 opoioi
@@ -420,7 +425,6 @@ pherei
 phetos
 philoi
 philos
-phores
 photia
 phugei
 pinaka
@@ -489,7 +493,6 @@ allaxei
 allazei
 amerike
 analoga
-analuse
 anamesa
 aphenei
 aphesei
@@ -509,6 +512,7 @@ basilia
 bgainei
 blepeis
 blepete
+brabeio
 brethei
 demetre
 demosia
@@ -522,7 +526,6 @@ domatio
 douleia
 dromous
 dunaton
-duskola
 duskole
 duskolo
 edaphos
@@ -543,12 +546,10 @@ ellenes
 ellenon
 enantia
 ennoeis
-enoteta
 entaxei
 entelos
 ephtase
 epiloge
-epipedo
 episema
 episeme
 epokhes
@@ -565,6 +566,7 @@ euthune
 exelixe
 exousia
 gegonos
+gephura
 giannes
 ginetai
 ginotan
@@ -573,6 +575,7 @@ grammes
 graphei
 gregora
 gunaika
+iatrike
 iouliou
 iouniou
 iskhuei
@@ -631,6 +634,7 @@ paidion
 paiktes
 pairnei
 paralia
+paroume
 pateras
 patrida
 pegaine
@@ -640,11 +644,8 @@ periodo
 peripou
 pernaei
 pethane
-phageto
 phernei
 philous
-phtanei
-phtasei
 phulake
 phusika
 phusike
@@ -694,8 +695,6 @@ theoria
 theseis
 tmemata
 tourkia
-trapeza
-trapezi
 uparxei
 uperkhe
 xeroume
@@ -726,7 +725,6 @@ blepoume
 boetheia
 bretheke
 dedomena
-deikhnei
 deloseis
 demetres
 demotiko
@@ -758,7 +756,6 @@ epistole
 epithese
 epitrope
 ergasias
-erkhetai
 etaireia
 ethnikes
 eukairia
@@ -766,16 +763,18 @@ eutukhos
 exaitias
 gegonota
 ginontai
+gnorizei
+grapheia
 grapheio
 gunaikes
 gunaikon
 istorias
 istories
 istoriko
-kalemera
 kalutera
 kalutere
 kalutero
+kapoious
 katalaba
 kathenas
 katholou
@@ -793,6 +792,7 @@ ligotero
 malakies
 mathetes
 megethos
+mesemeri
 monadike
 monadiko
 mousikes
@@ -813,6 +813,7 @@ parapano
 parousia
 peirazei
 perimeno
+periodou
 periokhe
 phobamai
 pithanon
@@ -875,18 +876,16 @@ anthropon
 anthropos
 anthropou
 antitheta
-apisteuto
 apoteloun
 asphaleia
 astunomia
 augoustou
+basilissa
 boethesei
 bouleutes
 brisketai
 dedomenon
-deikhnoun
 demarkhos
-diaphores
 diathetei
 diethnous
 dustukhos
@@ -926,6 +925,7 @@ kategoria
 kathestos
 khiliades
 koinonike
+koinoteta
 kubernese
 makedonia
 mathemata
@@ -955,7 +955,6 @@ phestibal
 politikes
 programma
 prokeitai
-prophanos
 prosopika
 prosopike
 prosopiko
@@ -1004,11 +1003,9 @@ diagonismo
 diamerisma
 dieuthunse
 dikaiomata
-dikasterio
 dolophonia
 dunatoteta
 ekdeloseis
-ekpaideuse
 eleutheria
 ephemerida
 epiphaneia
@@ -1036,15 +1033,18 @@ oikogeneia
 oikonomika
 oikonomike
 olumpiakos
+onomazetai
 paikhnidia
 paradeigma
 periballon
 perimeneis
 politismou
 pragmatika
+pragmatike
 pragmatiko
 problemata
 prospathei
+prosphuges
 skephtomai
 stamatesei
 stratiotes
@@ -1085,14 +1085,12 @@ prospatheia
 prospathese
 protathlema
 septembriou
-suggrapheas
 sugkentrose
 tautokhrona
 xenodokheio
 apokleistika
 apotelesmata
 diaphoretika
-diaphoretiko
 emphanizetai
 khreiazontai
 panepistemio

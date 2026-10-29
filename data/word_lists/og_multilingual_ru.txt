@@ -716,6 +716,7 @@ vecher
 vernut
 versii
 veselo
+veshch
 vesnoi
 videla
 videli
@@ -835,7 +836,6 @@ interes
 ispanii
 istorii
 iuzhnoi
-izdanie
 izmenit
 kapitan
 kartiny
@@ -1111,6 +1111,7 @@ bolshikh
 bolshogo
 bolshuiu
 borotsia
+brazilii
 bukvalno
 byvshego
 chashche
@@ -1334,6 +1335,7 @@ vecherom
 velikogo
 veshchei
 vliianie
+vnezapno
 vnimanie
 voennogo
 voennykh
@@ -1652,7 +1654,6 @@ nevozmozhno
 obiazatelno
 obrazovanie
 obshchestva
-obshchestvo
 ofitsialnyi
 okonchaniia
 osobennosti

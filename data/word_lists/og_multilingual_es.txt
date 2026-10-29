@@ -475,12 +475,13 @@ decada
 dejado
 delito
 dentro
+deseos
 detras
 dieron
 dinero
+dirige
 diseno
 dormir
-drogas
 efecto
 elegir
 empezo
@@ -1629,6 +1630,7 @@ descubrir
 diciembre
 dictadura
 diferente
+dificiles
 diputados
 direccion
 discusion
@@ -1977,6 +1979,7 @@ democratica
 desarrollar
 descripcion
 descubierto
+destruccion
 diferencias
 disponibles
 disposicion

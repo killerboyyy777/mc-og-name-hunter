@@ -209,6 +209,7 @@ siger
 siges
 sikke
 sikre
+sjove
 sjovt
 skabe
 skabt
@@ -505,15 +506,16 @@ sengen
 sidder
 sidste
 sikker
+sikrer
 skaber
 skader
+skaffe
 skibet
 skifte
 skolen
 skoler
 skonne
 skoven
-skridt
 skrive
 skulle
 slappe
@@ -630,7 +632,6 @@ derimod
 desuden
 dobbelt
 drikker
-elskede
 endelig
 engelsk
 enheder
@@ -638,7 +639,6 @@ enkelte
 erhverv
 esbjerg
 faelles
-faerdig
 faktisk
 farligt
 firmaet
@@ -712,7 +712,6 @@ laerere
 landets
 ledelse
 lettere
-levende
 ligesom
 losning
 lukkede
@@ -764,6 +763,7 @@ sagtens
 saledes
 samfund
 samlede
+samling
 samtale
 selskab
 seneste
@@ -773,7 +773,6 @@ skifter
 skrevet
 skriver
 skyldes
-slutter
 snakker
 sociale
 spillet
@@ -925,6 +924,7 @@ saesonen
 sakaldte
 samtidig
 sekunder
+slagelse
 soldater
 sommeren
 specielt
@@ -967,7 +967,6 @@ beskriver
 besluttet
 betydning
 bygningen
-bygninger
 danskerne
 deltagere
 derudover
@@ -998,7 +997,6 @@ klassiske
 kobenhavn
 lejlighed
 ligeledes
-manglende
 materiale
 medlemmer
 medmindre
@@ -1033,7 +1031,6 @@ sporgsmal
 storrelse
 tidligere
 tidspunkt
-tilfaelde
 udvikling
 underligt
 undersoge
@@ -1049,7 +1046,6 @@ anmeldelse
 anvendelse
 begraenset
 behandling
-beliggende
 beslutning
 besluttede
 bevaegelse

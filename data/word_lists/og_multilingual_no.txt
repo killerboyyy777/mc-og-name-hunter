@@ -534,6 +534,7 @@ resten
 riktig
 rommet
 ryggen
+sakene
 samlet
 sammen
 sapass
@@ -745,7 +746,6 @@ landene
 landets
 ledelse
 lettere
-levende
 leverer
 likevel
 losning
@@ -812,7 +812,6 @@ skrevet
 skriver
 skyldes
 slutten
-slutter
 sluttet
 snakker
 snakket
@@ -978,6 +977,7 @@ samtidig
 sekunder
 selvsagt
 sentrale
+sentralt
 sesongen
 skjonner
 soldater
@@ -1056,7 +1056,6 @@ kommunene
 latterlig
 leilighet
 losninger
-manglende
 medlemmer
 mennesker
 millioner

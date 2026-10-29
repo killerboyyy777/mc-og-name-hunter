@@ -871,8 +871,8 @@ Environment:
         "--min-points", type=int, default=cfg("generation.min_points", 0),
         help=(
             "Skip candidates scoring below this many rarity points (0-80). "
-            "Use e.g. 35 to only hunt OG+/rare names and avoid wasting "
-            "requests on low-value names. Default: 0 (no gate)"
+            "Use e.g. 35 to hunt second-tier and rarer names and avoid "
+            "wasting requests on low-value names. Default: 0 (no gate)"
         )
     )
     snipe_parser.add_argument(

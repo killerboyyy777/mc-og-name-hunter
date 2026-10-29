@@ -42,9 +42,7 @@ durfen
 erhoht
 fruhen
 fruher
-fuhlen
 fuhrer
-fuhrte
 gefuhl
 gehort
 gemass
@@ -85,7 +83,6 @@ erhohen
 erklart
 erwahnt
 erzahlt
-fuhrung
 gebaude
 gefallt
 gefuhle
@@ -205,7 +202,6 @@ umstanden
 unmoglich
 verandern
 verandert
-verfugung
 zustandig
 aufklarung
 begrundung
@@ -250,7 +246,6 @@ vollstandig
 wurttemberg
 zusatzliche
 ausdrucklich
-durchgefuhrt
 europaischen
 franzosische
 offentlichen

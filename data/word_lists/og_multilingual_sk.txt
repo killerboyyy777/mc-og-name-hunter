@@ -273,6 +273,7 @@ ulohy
 uplne
 uradu
 uzemi
+vacsi
 vasej
 vasho
 vasom
@@ -299,6 +300,7 @@ vlasy
 vobec
 vojna
 vojne
+vojnu
 vojny
 volby
 vonku
@@ -309,6 +311,7 @@ vyber
 vykon
 vyska
 vyske
+vysky
 vyvoj
 vztah
 yorku
@@ -502,7 +505,6 @@ radsej
 rocnik
 rodina
 rodine
-rodinu
 rodiny
 rokoch
 rozvoj
@@ -575,7 +577,6 @@ vidiet
 vikend
 vnutri
 vratil
-vratit
 vsetci
 vsetko
 vsetky
@@ -606,6 +607,7 @@ zalezi
 zapase
 zatial
 zaujem
+zaznam
 zdroje
 ziadna
 ziadne
@@ -650,7 +652,6 @@ dostali
 dostane
 doteraz
 dovodov
-druheho
 dvakrat
 funguje
 funkcie
@@ -714,7 +715,6 @@ pomocou
 postavy
 potreby
 pouzite
-pouziva
 povedal
 povedat
 povodne
@@ -818,7 +818,6 @@ hladiska
 hlavneho
 hlavnych
 hmotnost
-jednotky
 lietadlo
 mesiacov
 mestskej
@@ -845,7 +844,6 @@ niektore
 niektori
 normalne
 novembra
-obsahuje
 okamzite
 pochadza
 podarilo
@@ -904,6 +902,7 @@ vacsinou
 velkosti
 vsetkeho
 vsetkych
+vsetkymi
 vychadza
 vynimkou
 vysledky
@@ -916,6 +915,7 @@ zaciatok
 zakladna
 zakladne
 zlozenie
+zvierata
 zvycajne
 absolutne
 blizkosti
@@ -982,7 +982,6 @@ europskeho
 europskych
 informacie
 informacii
-jednoduche
 jednoducho
 jednotlive
 kedykolvek

@@ -153,6 +153,20 @@ def _is_inflected(word: str, z: float) -> bool:
     return False
 
 
+def _is_compound_plural(word: str) -> bool:
+    """Heuristic for plurals whose singular is a compound noun.
+
+    ``policymakers`` is more frequent than ``policymaker`` in some corpora, so
+    the normal stem-frequency check misses it.  Both forms split into words,
+    which lets us apply the same "inflected form" penalty without treating
+    base words such as ``news`` or ``series`` as plurals.
+    """
+    if len(word) < 6 or not word.endswith("s") or word.endswith("ss"):
+        return False
+    singular = word[:-1]
+    return _is_compound(word) and _is_compound(singular)
+
+
 def _split_level_suffix(core: str) -> tuple[str, bool]:
     """Split a trailing level indicator (digits or Roman numerals).
 
@@ -173,7 +187,16 @@ def _split_level_suffix(core: str) -> tuple[str, bool]:
 
 
 def _base_rarity_points(username: str) -> int:
-    """English-frequency rarity model (see :func:`rarity_points`)."""
+    """Community rarity model based on mcindex.gg's 18 name classes.
+
+    The tiers follow the published consensus used by mcindex.gg and the
+    Hypixel OG-name guides: common short English words are 80, common words /
+    popular first names / gaming terms are 60, 3-letter shapes are 52/45,
+    second-tier words (including German and inflections) are 35, 4-letter
+    shapes are 20/8, and compounds / leetspeak / very rare words are 12.
+    Length alone is never OG; random 3- and 4-letter strings are collectible
+    or notable, not top-tier words.
+    """
     name = username.lower()
     n = len(name)
 
@@ -182,12 +205,17 @@ def _base_rarity_points(username: str) -> int:
     # community consensus, even when frequent.
     if name.isalpha():
         z = _zipf(name)
+        inflected = _is_inflected(name, z)
+        if not inflected and _is_compound_plural(name):
+            return 12
         if z >= 4.5 and n <= 6:
-            return 80
+            return 35 if inflected else 80
         if z >= 3.5 and n <= 10:
-            return 35 if _is_inflected(name, z) else 60
+            return 35 if inflected else 60
         if n == 3:
             return 52 if _pronounceable(name) else 45
+        if z >= 1.0 and n >= 11 and _is_compound(name):
+            return 35
         if z >= 2.5:
             return 35
         if n == 4:
@@ -204,7 +232,7 @@ def _base_rarity_points(username: str) -> int:
     if n == 3:
         return 40
     if n == 4:
-        return 2
+        return 5
 
     # Longer names with digits/underscores.
     core = name.lstrip("_")
@@ -252,10 +280,10 @@ def rarity_points(username: str) -> int:
 
 
 class RarityTier(Enum):
-    """Rarity tiers based on mcindex.gg classification."""
-    TOP = "top"           # Zipf >= 4.5, <= 6 chars, 80 pts
-    OG = "og"             # Zipf >= 3.5, <= 10 chars, 60 pts
-    SEMI_OG = "semi_og"   # Zipf >= 2.5, <= 16 chars, 35 pts
+    """Coarse generation buckets for the mcindex.gg community model."""
+    TOP = "top"           # 80 pts: very common short English words
+    OG = "og"             # 60 pts plus 35-52 pt community classes
+    SEMI_OG = "semi_og"   # below 35 pts: 4-letter/minor/clean handles
     
     def base_score(self) -> int:
         return {

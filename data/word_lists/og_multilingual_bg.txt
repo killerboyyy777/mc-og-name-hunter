@@ -114,7 +114,9 @@ makar
 malka
 malki
 malko
+medii
 merki
+mersi
 mesta
 metra
 misli
@@ -129,6 +131,7 @@ mozhe
 muzei
 nared
 narod
+nasam
 nazad
 niama
 nikoi
@@ -399,6 +402,7 @@ pochti
 podark
 pogled
 poiavi
+pokrai
 polsha
 pomaga
 poradi
@@ -426,7 +430,6 @@ rtsete
 rusiia
 samiia
 sashch
-sbitie
 sdbata
 sdrzha
 seriia
@@ -444,7 +447,6 @@ smetka
 smiata
 smrtta
 snimka
-snimki
 sofiia
 spiska
 spored
@@ -461,7 +463,6 @@ struva
 sutrin
 svoeto
 svoite
-svrshi
 szdava
 takava
 takiva
@@ -561,7 +562,6 @@ drugite
 drugoto
 drzhava
 drzhavi
-dushata
 dvamata
 dzheims
 formata
@@ -579,7 +579,6 @@ ianuari
 ideiata
 interes
 italiia
-izdanie
 kakvoto
 kapitan
 kazakha
@@ -606,6 +605,7 @@ maikata
 malkata
 malkite
 malkoto
+mashini
 mesetsa
 miliona
 ministr
@@ -655,11 +655,11 @@ obshcho
 ochakva
 osnovni
 osnovno
-osobeno
 ostavat
 ostavia
 otdavna
 otgovor
+otkazva
 otkrito
 otkriva
 otnasia
@@ -696,7 +696,6 @@ ptuvane
 rabotia
 ramkite
 razbere
-razbira
 razlika
 razmeri
 reditsa
@@ -707,7 +706,6 @@ rumniia
 ruskata
 samiiat
 samolet
-sbitiia
 sbranie
 sekundi
 severna
@@ -726,7 +724,6 @@ spriamo
 sredata
 srtseto
 staiata
-stanalo
 starite
 stranno
 svoboda
@@ -769,15 +766,16 @@ vzemete
 zakuska
 zapoved
 zashcho
+zatvora
 zdravei
 zemiata
 zhenata
 zhenite
+zhiteli
 zhiveem
 zhivota
 zhivott
 armiiata
-bdeshche
 blgariia
 blgarite
 blgarska
@@ -802,6 +800,7 @@ godinata
 godinite
 godishen
 godishna
+godishno
 golemiia
 golemite
 govoriat
@@ -814,6 +813,7 @@ istoriia
 izkustvo
 iznenada
 izpolzva
+iztochna
 iztsialo
 izvesten
 izvestni
@@ -836,11 +836,11 @@ minalata
 minaloto
 momcheta
 momcheto
-mozheshe
 muzikata
 nadezhda
 nadiavam
 naistina
+namerikh
 napravia
 napravil
 napravim
@@ -864,6 +864,7 @@ opasnost
 osnovata
 otgovori
 otlichno
+pobedata
 pochivka
 podkrepa
 politika
@@ -929,7 +930,6 @@ telefona
 trgoviia
 trgovski
 tsialata
-tsialoto
 tsrkvata
 tsvetove
 turtsiia
@@ -940,11 +940,9 @@ upotreba
 usloviia
 uspeshno
 vashiiat
-vazhnoto
 vecheria
 vecherta
 vnimanie
-vobshche
 vtoriiat
 vzmozhno
 zapochna
@@ -959,6 +957,7 @@ akademiia
 angliiski
 deistviia
 dokumenti
+dovechera
 drzhavata
 dshcheria
 dvizhenie
@@ -971,7 +970,6 @@ grazhdani
 ikonomika
 interesno
 izglezhda
-izobshcho
 izplnenie
 izpolzvat
 kampaniia
@@ -979,6 +977,7 @@ kharakter
 kharesvam
 kompaniia
 kulturata
+materiali
 momicheta
 nachaloto
 napraviat
@@ -1031,7 +1030,6 @@ uchastvat
 uchenitsi
 veroiatno
 vkliuchva
-vsiakakvi
 vsichkite
 zamestnik
 zapochvat
@@ -1067,9 +1065,9 @@ ofitsialno
 operatsiia
 opredeleno
 organizira
-ostanalite
 otbeliazva
 otnoshenie
+parlamenta
 pazardzhik
 politikata
 polovinata
@@ -1123,11 +1121,9 @@ blagoevgrad
 dvizhenieto
 kompaniiata
 naselenieto
-natsionalen
 natsionalna
 neveroiatno
 obrazovanie
-obshchestvo
 obshchinata
 otnosheniia
 politsiiata
@@ -1138,7 +1134,6 @@ prodlzhavat
 prodlzhenie
 razlichnite
 semeistvoto
-sobshchenie
 tekhnologii
 temperatura
 uchilishcha
@@ -1166,7 +1161,6 @@ predstavitel
 proizvodstvo
 situatsiiata
 sshchestvuva
-tekhnicheski
 teritoriiata
 universiteta
 upravlenieto

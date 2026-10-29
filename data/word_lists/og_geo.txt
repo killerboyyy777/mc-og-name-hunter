@@ -108,13 +108,11 @@ gwadloup
 hayastan
 hrvatska
 iritriya
-ityoppya
 lasvegas
 lilongwe
 naijiria
 ndjamena
 newdelhi
-nijeriya
 pagopago
 pitcairn
 portvila
@@ -178,7 +176,6 @@ basseterre
 besislands
 bridgetown
 elsalvador
-honguainuo
 ivorycoast
 kralendijk
 kukiairani
@@ -276,14 +273,12 @@ southgeorgia
 stateoflibya
 stateofqatar
 stbarthelemy
-tetaparaguai
 timorlorosae
 unitedstates
 washingtondc
 westvirginia
 yamoussoukro
 americansamoa
-beluuerabelau
 caymanislands
 chinesetaipei
 congokinshasa
@@ -343,7 +338,6 @@ christmasisland
 cityofsanmarino
 falklandislands
 frenchpolynesia
-gabuutihummuuno
 italianrepublic
 jamhuriyauganda
 kingdomofbhutan
@@ -353,7 +347,6 @@ kingedwardpoint
 kongeriketnoreg
 kongeriketnorge
 korearepublicof
-lydveldidisland
 marshallislands
 pitcairnislands
 porinetiafarani
@@ -412,7 +405,6 @@ republicofturkey
 republicofuganda
 republicofzambia
 republiquedhaiti
-republiquedumali
 stateofpalestine
 tanezrofttutrimt
 togoleserepublic

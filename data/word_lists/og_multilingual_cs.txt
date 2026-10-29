@@ -34,7 +34,6 @@ chapu
 chces
 chodi
 chtel
-chtit
 chyba
 chybi
 chybu
@@ -109,7 +108,6 @@ jedno
 jednu
 jehoz
 jejim
-jejiz
 jenom
 jenze
 jeste
@@ -208,6 +206,7 @@ nekam
 nekde
 nekdo
 nekdy
+nekym
 nelze
 nemam
 nemas
@@ -231,6 +230,7 @@ obsah
 odkud
 okoli
 okolo
+osoba
 osoby
 ovsem
 parku
@@ -268,6 +268,7 @@ praxi
 praze
 prece
 proti
+prvky
 prvni
 pujde
 pujdu
@@ -297,6 +298,7 @@ sance
 sanci
 sebou
 sesti
+silny
 skola
 skole
 skolu
@@ -478,7 +480,6 @@ dekuju
 delaji
 dlouha
 dlouhe
-dlouho
 dlouhy
 dneska
 dnesni
@@ -492,7 +493,6 @@ dostal
 dostat
 doufam
 druhem
-druhou
 druhym
 duvodu
 evrope
@@ -539,7 +539,6 @@ kterem
 kterou
 kterym
 kvetna
-letech
 lidske
 mesice
 mesicu
@@ -562,6 +561,7 @@ myslim
 myslis
 nabizi
 nadale
+nahoru
 naopak
 napsal
 naseho
@@ -619,6 +619,7 @@ podobe
 podzim
 pohled
 pohode
+pokoje
 pokoji
 pomaha
 pomalu
@@ -663,7 +664,6 @@ rocnik
 rodice
 rodina
 rodine
-rodinu
 rodiny
 rovnez
 rovnou
@@ -682,8 +682,8 @@ sluzby
 sluzeb
 slyset
 smerem
+smyslu
 snadno
-snazil
 snazim
 sobotu
 soutez
@@ -715,6 +715,7 @@ teprve
 tisice
 tohoto
 tomhle
+tomuto
 trener
 trochu
 trosku
@@ -737,7 +738,6 @@ vezeni
 videla
 vikend
 vratil
-vratit
 vyboru
 vybrat
 vydani
@@ -787,7 +787,6 @@ zpatky
 zprava
 zpravu
 zpravy
-zpusob
 zrejme
 zrovna
 zustal
@@ -820,7 +819,6 @@ dopravy
 dostala
 dostali
 dostane
-druheho
 dvakrat
 francie
 funguje
@@ -861,6 +859,7 @@ moznost
 myslela
 myslite
 nabidka
+nabidku
 nachazi
 nadrazi
 nahodou
@@ -916,7 +915,6 @@ poradku
 poradne
 potreba
 pouziti
-pouziva
 pozdeji
 pracuje
 pratele
@@ -1027,7 +1025,6 @@ historii
 hlavniho
 hlediska
 jaroslav
-jednotky
 kulturni
 kvalitni
 miliardy
@@ -1039,7 +1036,6 @@ naprosto
 nasledne
 nastesti
 nejdrive
-nejhorsi
 nejlepsi
 nejvetsi
 nejvyssi
@@ -1048,7 +1044,6 @@ neustale
 normalni
 obchodni
 obleceni
-obsahuje
 obyvatel
 oddeleni
 okamzite
@@ -1064,6 +1059,7 @@ poslanci
 posledni
 postupne
 pouzivat
+povoleni
 pracoval
 pracovat
 pracovni
@@ -1131,6 +1127,7 @@ kilometru
 konkretni
 listopadu
 maximalne
+maximalni
 minimalne
 minulosti
 mistnosti
@@ -1149,6 +1146,7 @@ podivejte
 podnikani
 pojisteni
 pokracuje
+policejni
 politicke
 poslednim
 potrebuje
@@ -1179,10 +1177,10 @@ zdravotni
 americkych
 budoucnost
 evropskych
-jednoduche
 jednotlive
 komunikace
 konference
+manzelstvi
 mimochodem
 neexistuje
 nejcasteji
@@ -1206,15 +1204,12 @@ verejnosti
 zahranicni
 zkusenosti
 mezinarodni
-mistrovstvi
 nasledujici
 potrebujete
 predstaveni
 predstavuje
 prilezitost
 skutecnosti
-soucasnosti
-souvislosti
 spolecnosti
 bezpecnostni
 jednotlivych
