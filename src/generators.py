@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from typing import Generator, Optional
-from src.models import UsernameCandidate, RarityTier, rarity_points
+from src.models import UsernameCandidate, RarityTier, rarity_points, tier_for_score
 from src.paths import default_wordlist_dir
 
 
@@ -67,14 +67,13 @@ class WordListLoader:
         return words
 
 
-def _points_to_tier(points: int) -> RarityTier:
-    # TOP is 80 points; 60-point words are OG, not TOP.
-    if points >= 70:
-        return RarityTier.TOP
-    elif points >= 35:
-        return RarityTier.OG
-    else:
-        return RarityTier.SEMI_OG
+def _score_to_tier(points: int) -> RarityTier:
+    """Derive the generation tier from the 0-1000 score.
+
+    TOP >= 800, OG >= 350, SEMI_OG below; one source of truth (see
+    ``src.rarity.tier_for_score``).
+    """
+    return tier_for_score(points)
 
 
 class CandidateGenerator:
@@ -87,7 +86,7 @@ class CandidateGenerator:
         max_length: int = 16,
         storage=None,
         extra_lists: Optional[list[tuple[str, RarityTier, str]]] = None,
-        min_points: int = 0,
+        min_score: int = 0,
     ):
         self.tiers = sorted(tiers, key=lambda t: t.sort_order)
         self.min_length = min_length
@@ -97,14 +96,14 @@ class CandidateGenerator:
         # Custom word lists as (filename, tier, source_label) tuples.
         # Checked before the built-in tier lists (explicit user request).
         self.extra_lists = extra_lists or []
-        # Rarity gate: candidates scoring below this are skipped before any
-        # API call. Scope is "rarest free names", so low-value names are not
-        # worth spending the rate-limited request budget on.
-        self.min_points = min_points
+        # Score gate: candidates scoring below this are skipped before any API
+        # call. Scope is "rarest free names", so low-value names are not worth
+        # spending the rate-limited request budget on.
+        self.min_score = min_score
         self._exhausted = False
         self._total_candidates = 0
         self._filtered_cache: dict[str, list[tuple[str, float]]] = {}
-        self._checked_tiers: Optional[dict[str, RarityTier]] = None
+        self._checked: Optional[set[str]] = None
         self._prefilter_words()
     
     def _prefilter_words(self):
@@ -116,18 +115,15 @@ class CandidateGenerator:
         total_before = 0
         total_after = 0
         
-        # Bulk-load checked tiers once so large lists (e.g. all 3/4-letter
-        # combos) filter in memory instead of one DB query per word.
-        # The map is reused by _generate_from_list during generation.
-        self._checked_tiers = self.storage.get_checked_tiers()
-        
-        def not_checked(word: str, tier: RarityTier) -> bool:
-            return not self._is_checked(word, tier)
+        # Bulk-load the checked-at-all set once so large lists (e.g. all
+        # 3/4-letter combos) filter in memory instead of one DB query per word.
+        # The set is reused by _generate_from_list during generation.
+        self._checked = self.storage.get_checked()
 
         def keep(word: str, tier: RarityTier) -> bool:
-            if rarity_points(word) < self.min_points:
+            if rarity_points(word) < self.min_score:
                 return False
-            return not_checked(word, tier)
+            return not self._is_checked(word)
         
         for filename, tier, source_label in self.extra_lists:
             # Load custom word list (plain or tab-separated format)
@@ -161,20 +157,18 @@ class CandidateGenerator:
         
         self._total_candidates = total_after
         print(f"Filtered {total_before} -> {total_after} words "
-              f"({total_before - total_after} dropped: already checked or below {self.min_points} pts)")
+              f"({total_before - total_after} dropped: already checked or below {self.min_score} score)")
     
-    def _is_checked(self, word: str, tier: RarityTier) -> bool:
-        """Check if a word was already checked at same or higher priority tier.
+    def _is_checked(self, word: str) -> bool:
+        """Check if a word was already checked (checked-at-all gate).
 
-        Uses the bulk-loaded map when available, otherwise queries storage.
+        Uses the bulk-loaded set when available, otherwise queries storage.
+        Any non-error/non-rate-limited row counts, regardless of tier.
         """
-        if self._checked_tiers is not None:
-            checked_tier = self._checked_tiers.get(word)
-            if checked_tier is None:
-                return False
-            return checked_tier.sort_order <= tier.sort_order
+        if self._checked is not None:
+            return word in self._checked
         if self.storage:
-            return self.storage.is_checked_at_or_above_tier(word, tier)
+            return self.storage.is_checked(word)
         return False
     
     @property
@@ -255,17 +249,17 @@ class CandidateGenerator:
                     continue
                 emitted.add(key)
             
-            # Calculate actual points for this word
+            # Calculate the actual score for this word
             points = rarity_points(word)
 
-            # Rarity gate: skip anything that cannot be a rare name.
-            if points < self.min_points:
+            # Score gate: skip anything that cannot be a rare name.
+            if points < self.min_score:
                 continue
 
-            actual_tier = _points_to_tier(points)
+            actual_tier = _score_to_tier(points)
             
-            # Skip if already checked at same or higher priority tier
-            if self._is_checked(word, actual_tier):
+            # Skip if already checked (checked-at-all gate)
+            if self._is_checked(word):
                 continue
             
             # Base candidate with tier based on actual rarity
@@ -291,5 +285,5 @@ def create_generator(
         max_length=config.get("max_length", 16),
         storage=storage,
         extra_lists=extra_lists,
-        min_points=config.get("min_points", 0),
+        min_score=config.get("min_score", 0),
     )

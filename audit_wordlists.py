@@ -25,8 +25,8 @@ Outputs (in ``data/``):
 
 Examples:
     python audit_wordlists.py --count-only
-    python audit_wordlists.py                       # score >= 45
-    python audit_wordlists.py --min-points 60
+    python audit_wordlists.py                       # score >= 450
+    python audit_wordlists.py --min-score 600
     python audit_wordlists.py --public-rps 1.5 --auth-rps 0.06
     python audit_wordlists.py --skip-public          # auth-check everything
 """
@@ -55,7 +55,7 @@ AUTH_URL = "https://api.minecraftservices.com/minecraft/profile/name/{}/availabl
 FINAL_STATUSES = {"available", "taken", "banned"}
 INTERMEDIATE_STATUSES = {"absent"}
 
-CSV_FIELDS = ["word", "points", "status", "lists", "checked_at", "error"]
+CSV_FIELDS = ["word", "score", "status", "lists", "checked_at", "error"]
 
 USER_AGENT = "mc-og-name-hunter/1.0"
 
@@ -71,7 +71,7 @@ def load_words(list_paths):
             entry = words.setdefault(key, {"lists": set()})
             entry["lists"].add(path.name)
     for key, entry in words.items():
-        entry["points"] = rarity_points(key)
+        entry["score"] = rarity_points(key)
         entry["lists"] = sorted(entry["lists"])
     return words
 
@@ -83,7 +83,15 @@ def load_previous(csv_path):
     with open(csv_path, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             if row.get("status") in FINAL_STATUSES | INTERMEDIATE_STATUSES:
-                rows[row["word"]] = row
+                # Accept CSVs written before score model 2 (field was "points").
+                rows[row["word"]] = {
+                    "word": row["word"],
+                    "score": int(row.get("score") or row.get("points") or 0),
+                    "status": row["status"],
+                    "lists": row.get("lists", ""),
+                    "checked_at": row.get("checked_at", ""),
+                    "error": row.get("error", ""),
+                }
     return rows
 
 
@@ -101,13 +109,13 @@ def write_outputs(data_dir, rows):
     banned = sorted(w for w, r in rows.items() if r["status"] == "banned")
     available = sorted(
         (r for r in rows.values() if r["status"] == "available"),
-        key=lambda r: (-int(r["points"]), len(r["word"]), r["word"]),
+        key=lambda r: (-int(r["score"]), len(r["word"]), r["word"]),
     )
     (data_dir / "wordlist_banned.txt").write_text(
         "\n".join(banned) + ("\n" if banned else ""), encoding="utf-8"
     )
     (data_dir / "wordlist_available.txt").write_text(
-        "\n".join(f"{r['word']}\t{r['points']}" for r in available)
+        "\n".join(f"{r['word']}\t{r['score']}" for r in available)
         + ("\n" if available else ""),
         encoding="utf-8",
     )
@@ -157,7 +165,7 @@ def summarize(rows, source_lists, elapsed, screened, auth_checked):
 def mark(rows, eligible, word, status, error=""):
     rows[word] = {
         "word": word,
-        "points": eligible[word]["points"],
+        "score": eligible[word]["score"],
         "status": status,
         "lists": ";".join(eligible[word]["lists"]),
         "checked_at": datetime.now().isoformat(timespec="seconds"),
@@ -309,8 +317,11 @@ def main():
     parser.add_argument("--wordlist-dir", default="data/word_lists")
     parser.add_argument("--lists", nargs="*", default=None,
                         help="Only these filenames (default: all *.txt)")
-    parser.add_argument("--min-points", type=int, default=45,
-                        help="Minimum rarity score to check (default: 45)")
+    parser.add_argument("--min-score", type=int, default=450,
+                        help="Minimum rarity score to check (0-1000; default 450)")
+    parser.add_argument("--min-points", type=int, default=None,
+                        help="Deprecated alias on the old 0-80 scale "
+                             "(value x 10); do not pass a 0-1000 value")
     parser.add_argument("--public-rps", type=float, default=1.5,
                         help="Public batch requests/s, 10 names each "
                              "(documented ceiling 200/2min = 1.67; default 1.5)")
@@ -334,6 +345,12 @@ def main():
                         help="Only report volumes and ETAs")
     args = parser.parse_args()
 
+    min_score = args.min_score
+    if args.min_points is not None:
+        min_score = args.min_points * 10
+        print(f"--min-points is deprecated; {args.min_points} -> "
+              f"--min-score {min_score} (0-1000 scale).")
+
     data_dir = Path(args.output_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
     csv_path = data_dir / "wordlist_audit.csv"
@@ -349,10 +366,10 @@ def main():
     print(f"Loading {len(list_paths)} word lists from {args.wordlist_dir} ...")
     words = load_words(list_paths)
     eligible = {
-        w: meta for w, meta in words.items() if meta["points"] >= args.min_points
+        w: meta for w, meta in words.items() if meta["score"] >= min_score
     }
     if args.limit:
-        top = sorted(eligible, key=lambda w: (-eligible[w]["points"], len(w), w))
+        top = sorted(eligible, key=lambda w: (-eligible[w]["score"], len(w), w))
         eligible = {w: eligible[w] for w in top[: args.limit]}
 
     previous = {} if args.fresh else load_previous(csv_path)
@@ -370,14 +387,14 @@ def main():
         public_pending = [w for w in public_pending
                           if previous.get(w, {}).get("status") != "absent"]
 
-    public_pending.sort(key=lambda w: (-eligible[w]["points"], len(w), w))
-    auth_pending.sort(key=lambda w: (-eligible[w]["points"], len(w), w))
+    public_pending.sort(key=lambda w: (-eligible[w]["score"], len(w), w))
+    auth_pending.sort(key=lambda w: (-eligible[w]["score"], len(w), w))
 
     public_eta = (len(public_pending) / 10) / args.public_rps if args.public_rps else 0
     auth_eta = len(auth_pending) / args.auth_rps if args.auth_rps else 0
 
     print(f"Unique valid words : {len(words):,}")
-    print(f"At/above {args.min_points:<3} points: {len(eligible):,}")
+    print(f"At/above {min_score:<4} score: {len(eligible):,}")
     print(f"Phase 1 (public)   : {len(public_pending):,} names "
           f"({len(public_pending)//10+1:,} requests, ~{public_eta/60:.1f} min)")
     print(f"Phase 2 (auth)     : {len(auth_pending):,} names "

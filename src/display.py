@@ -5,7 +5,20 @@ import time
 import threading
 from datetime import datetime
 from typing import List, Tuple
-from src.models import RarityTier, CheckStatus, rarity_points
+from src.models import RarityTier
+
+
+def score_color(score: int, colors: dict) -> str:
+    """Colour a score by its band (top > OG word > semi-OG > 4L > rest)."""
+    if score >= 800:
+        return colors.get('magenta', '')
+    if score >= 600:
+        return colors.get('blue', '')
+    if score >= 350:
+        return colors.get('cyan', '')
+    if score >= 120:
+        return colors.get('green', '')
+    return colors.get('gray', '')
 
 
 class CleanDisplay:
@@ -105,9 +118,9 @@ class CleanDisplay:
             self.rate_limited = rate_limited
         self._render()
     
-    def add_hit(self, username: str, tier: RarityTier, points: int):
+    def add_hit(self, username: str, tier: RarityTier, score: int):
         self.hits += 1
-        self.hits_detail.append((username, tier, points, datetime.now()))
+        self.hits_detail.append((username, tier, score, datetime.now()))
         self._render()
     
     def _render(self):
@@ -174,14 +187,14 @@ class CleanDisplay:
         lines.append(f"| {self._c('TOP 5 HITS BY RARITY', self.C['bold'] + self.C['magenta']):<68} |")
         
         if self.hits_detail:
-            # Community rarity points first, then shorter names.
+            # Score first (higher = rarer), then shorter names.
             sorted_hits = sorted(
                 self.hits_detail,
-                key=lambda x: (-rarity_points(x[0]), len(x[0])),
+                key=lambda x: (-x[2], len(x[0])),
             )
             
             for i, (username, tier, points, ts) in enumerate(sorted_hits[:5], 1):
-                tier_color = self.tier_colors.get(tier, self.C['green'])
+                tier_color = score_color(points, self.C)
                 rank_color = self.C['gold'] if i <= 3 else self.C['white']
                 time_str = ts.strftime('%H:%M:%S')
                 
@@ -375,11 +388,11 @@ class SimpleLineDisplay:
         self.finish()
 
 
-def format_hit_line(username: str, tier: RarityTier, hit_num: int, points: int, colors: dict, tier_colors: dict) -> str:
+def format_hit_line(username: str, tier: RarityTier, hit_num: int, score: int, colors: dict, tier_colors: dict) -> str:
     """Format a hit line for display."""
-    tier_color = tier_colors.get(tier, colors['green'])
+    tier_color = score_color(score, colors) or tier_colors.get(tier, colors['green'])
     rank_color = colors['gold'] if hit_num <= 3 else colors.get('white', colors['reset'])
-    score_str = f" ({points} pts)" if points > 0 else ""
+    score_str = f" ({score} pts)" if score > 0 else ""
     return (f"\n{colors['green']}{colors['bold']}[HIT #{hit_num}]{colors['reset']} "
             f"{tier_color}{colors['bold']}{username}{colors['reset']} "
             f"({tier_color}{tier.value.upper()}{colors['reset']})"

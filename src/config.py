@@ -23,7 +23,7 @@ DEFAULTS: dict[str, Any] = {
     "generation": {
         "tiers": "top,og,semi_og",
         "max_candidates": 50000,
-        "min_points": 0,
+        "min_score": 0,
         "min_length": 3,
         "max_length": 16,
     },
@@ -92,7 +92,31 @@ def load_config(config_path: str | None = None) -> dict[str, Any]:
     elif required:
         raise FileNotFoundError(f"Config file not found: {path}")
 
-    return _deep_merge(DEFAULTS, file_config)
+    return _migrate_legacy_keys(_deep_merge(DEFAULTS, file_config), file_config)
+
+
+def _migrate_legacy_keys(merged: dict, file_config: dict) -> dict:
+    """Translate removed config keys in place.
+
+    ``generation.min_points`` was the old 0-80 rarity gate; it is honoured as
+    ``min_points x 10`` on the 0-1000 scale, but only when ``min_score`` is not
+    set (an explicit new key always wins).
+    """
+    generation = (file_config or {}).get("generation")
+    if not isinstance(generation, dict) or "min_points" not in generation:
+        return merged
+    if "min_score" not in generation:
+        try:
+            merged["generation"]["min_score"] = int(generation["min_points"]) * 10
+            print(
+                "Config: generation.min_points is deprecated; "
+                f"{generation['min_points']} -> min_score "
+                f"{merged['generation']['min_score']} (0-1000 scale)."
+            )
+        except (TypeError, ValueError):
+            pass
+    merged["generation"].pop("min_points", None)
+    return merged
 
 
 def find_config_path(argv: list[str]) -> str | None:

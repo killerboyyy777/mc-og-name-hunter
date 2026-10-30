@@ -18,14 +18,13 @@ of the English score and the curated tier, so the rest of the program
 (generation, filtering, storage, display and auditing) automatically
 agrees on the value.
 
-Scores follow the community model published by mcindex.gg (18 classes) and
-the Hypixel OG-name guides.  Common short English words are 80, common
-words / popular first names / gaming terms are 60, 3-letter shapes are
-52/45, second-tier words (including German and inflections) are 35,
-4-letter shapes are 20/8, and compounds / leetspeak / very rare words are
-12.  A word is never promoted to 80 just because it is short; foreign
-dictionary words are second-tier unless English usage makes them common
-enough for the base model to score them higher.
+Scores follow the banded 0-1000 class model in ``src/rarity.py``: common
+short English words are 800+, OG words / first names / German words are 600+,
+3-letter shapes are 520/450/400, other semi-OG words are 350+, 4-letter shapes
+are 200/80, and compounds / leetspeak / very rare words are 120+.  A word is
+never promoted to the top class just because it is short; foreign dictionary
+words are semi-OG unless English usage makes them common enough for the base
+model to score them higher.
 
 Usage::
 
@@ -56,7 +55,7 @@ except Exception:  # pragma: no cover - wordfreq is required by the project
     zipf_frequency = None
 
 from generate_custom_wordlists import is_banned
-from src.models import _base_rarity_points
+from src.rarity import base_score, class_for_score
 
 
 REPO_ROOT = Path(__file__).resolve().parent
@@ -68,10 +67,10 @@ CACHE_DIR = REPO_ROOT / "data" / "themed_cache"
 GENERATED_NAMES = {"rare_names.txt", "semi_names.txt"}
 GENERATED_PREFIXES = ("og_", "semi_")
 
-# Language, number of valid words to keep, source tier.  Foreign dictionary
-# words are second-tier (35) under the community model; common English words
-# and widely recognised loanwords still score higher through the base model.
-# German is explicitly second-tier on mcindex.gg.
+# Language, number of valid words to keep, source class floor.  Foreign
+# dictionary words are semi-OG (350) under the class model; common English
+# words and widely recognised loanwords still score higher through the base
+# model.  German is an OG class (600) via german.txt membership.
 MULTILINGUAL = [
     ("es", 3000, 35), ("fr", 3000, 35), ("de", 3000, 35),
     ("it", 2500, 35), ("pt", 2500, 35), ("nl", 2200, 35),
@@ -625,23 +624,23 @@ def fetch(url: str, filename: str, offline: bool) -> str:
 
 
 def consensus_points(word: str, source_points: int) -> int:
-    """Normalise a source tier against mcindex.gg's community classes.
+    """Normalise a source tier against the 0-1000 class model.
 
     Shortness alone is not a promotion: 3- and 4-letter words keep the base
-    shape score (52/45 and 20/8), foreign dictionary words stay second-tier
-    (35), and only common English words / names / gaming terms reach 60-80.
-    A 60-point source floor remains available for an explicitly curated set;
-    the broad foreign word list uses 35.
+    shape class, foreign dictionary words stay semi-OG (350), and only common
+    English words / names / gaming terms reach the OG (600) or top (800)
+    classes.  A 60-point source floor remains available for an explicitly
+    curated set; the broad foreign word list uses 35.
     """
-    base = _base_rarity_points(word)
+    base = base_score(word)
     n = len(word)
     if source_points >= 60:
-        return max(base, 60)
+        return max(base, 600)
     if n <= 4:
         return base
     if source_points <= 12:
-        return max(base, source_points)
-    return max(base, 35)
+        return max(base, 120)
+    return max(base, 350)
 
 
 class Builder:
@@ -657,7 +656,7 @@ class Builder:
         word = clean_word(raw)
         if not word:
             return False
-        points = max(0, min(80, consensus_points(word, points)))
+        points = max(0, min(1000, consensus_points(word, points)))
         previous = self.points.get(word)
         if previous is None:
             self.override_count += 1
@@ -683,11 +682,11 @@ class Builder:
             counts[filename] = len(ordered)
 
         rare = sorted(
-            (w for w, p in self.points.items() if p >= 60 and w not in self.existing),
+            (w for w, p in self.points.items() if p >= 600 and w not in self.existing),
             key=lambda w: (len(w), w),
         )
         semi = sorted(
-            (w for w, p in self.points.items() if p < 60 and w not in self.existing),
+            (w for w, p in self.points.items() if p < 600 and w not in self.existing),
             key=lambda w: (len(w), w),
         )
         (self.out_dir / "rare_names.txt").write_text(
@@ -701,7 +700,10 @@ class Builder:
 
         overrides = sorted(self.points.items())
         (self.out_dir / "rarity_overrides.tsv").write_text(
-            "".join(f"{word}\t{points}\n" for word, points in overrides),
+            "".join(
+                f"{word}\t{points}\t{class_for_score(points).key}\n"
+                for word, points in overrides
+            ),
             encoding="utf-8",
         )
         counts["rarity_overrides.tsv"] = len(overrides)

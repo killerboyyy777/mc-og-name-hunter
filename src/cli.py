@@ -50,15 +50,15 @@ def colorize(text: str, color: str) -> str:
     return text
 
 
-def print_hit(username: str, tier: RarityTier, hit_num: int, points: int = 0):
-    """Print a hit with colors and community rarity points."""
+def print_hit(username: str, tier: RarityTier, hit_num: int, score: int = 0):
+    """Print a hit with colors and its 0-1000 community score."""
     tier_colors = {
         RarityTier.TOP: Colors.MAGENTA,
         RarityTier.OG: Colors.BLUE,
         RarityTier.SEMI_OG: Colors.CYAN,
     }
     tier_color = tier_colors.get(tier, Colors.GREEN)
-    score_str = f" ({points} pts)" if points > 0 else ""
+    score_str = f" ({score} pts)" if score > 0 else ""
     print(f"\n{colorize(f'[HIT #{hit_num}]', Colors.GREEN + Colors.BOLD)} "
           f"{colorize(username, tier_color + Colors.BOLD)} "
           f"({colorize(tier.value.upper(), tier_color)})"
@@ -81,6 +81,32 @@ def print_error(username: str, error: str):
 def print_rate_limited():
     """Print rate limited warning."""
     print(f"\n{colorize('[RATE LIMITED]', Colors.YELLOW)} Backing off...")
+
+
+def print_top_available(storage, limit: int = 10):
+    """Print the highest-scoring trusted available names."""
+    hits = storage.get_available(verified_only=True, trusted_only=True)
+    if not hits:
+        return
+    print(f"\n{colorize('Top 10 Available:', Colors.BOLD + Colors.CYAN)}")
+    print(f"{'Rank':>4}  {'Username':<16}  {'Score':>5}  {'Tier':<10}  {'Label'}")
+    print("-" * 62)
+    shown = 0
+    for hit in hits:
+        if is_banned(hit.username):
+            continue
+        shown += 1
+        score = hit.score if hit.score is not None else rarity_points(hit.username)
+        label = rarity_label(score, hit.username)
+        tier_color = {
+            'top': Colors.MAGENTA,
+            'og': Colors.BLUE,
+            'semi_og': Colors.CYAN,
+        }.get(hit.tier.value, Colors.GREEN)
+        tier_str = colorize(hit.tier.value.upper(), tier_color)
+        print(f"{shown:>4}  {colorize(hit.username, Colors.BOLD):<16}  {score:>5}  {tier_str:<10}  {label}")
+        if shown >= limit:
+            break
 
 
 class GracefulShutdown:
@@ -236,7 +262,7 @@ async def run_snipe_async(
     generator = create_generator(config.tiers, {
         "min_length": get_config_value(settings, "generation.min_length", 3),
         "max_length": get_config_value(settings, "generation.max_length", 16),
-        "min_points": config.min_points,
+        "min_score": config.min_score,
     }, storage, extra_lists=extra_lists)
     
     total_to_check = min(config.max_candidates, generator.total_candidates)
@@ -285,18 +311,18 @@ async def run_snipe_async(
                 # or display a banned name as a hit if one slips through.
                 if result.source == "mojang-primary" and not is_banned(result.username):
                     hits += 1
-                    points = rarity_points(result.username)
-                    hits_detail.append((result.username, result.tier, points, datetime.now()))
-                    display.add_hit(result.username, result.tier, points)
+                    score = rarity_points(result.username)
+                    hits_detail.append((result.username, result.tier, score, datetime.now()))
+                    display.add_hit(result.username, result.tier, score)
             elif result.status == CheckStatus.VERIFIED_AVAILABLE:
                 if is_banned(result.username):
                     taken += 1
                     display.update_stats(taken=taken)
                 else:
                     hits += 1
-                    points = rarity_points(result.username)
-                    hits_detail.append((result.username, result.tier, points, datetime.now()))
-                    display.add_hit(result.username, result.tier, points)
+                    score = rarity_points(result.username)
+                    hits_detail.append((result.username, result.tier, score, datetime.now()))
+                    display.add_hit(result.username, result.tier, score)
             elif result.status == CheckStatus.VERIFIED_TAKEN:
                 taken += 1
                 display.update_stats(taken=taken)
@@ -371,28 +397,8 @@ async def run_snipe_async(
         print(f"\nExported {colorize(str(exported), Colors.GREEN)} trusted available names to {config.output_file}")
     
     # Display top 10 available names
-    hits = storage.get_available(verified_only=True, trusted_only=True)
-    if hits:
-        print(f"\n{colorize('Top 10 Available:', Colors.BOLD + Colors.CYAN)}")
-        print(f"{'Rank':>4}  {'Username':<16}  {'Points':>5}  {'Tier':<10}  {'Label'}")
-        print("-" * 60)
-        shown = 0
-        for hit in hits:
-            if is_banned(hit.username):
-                continue
-            shown += 1
-            pts = rarity_points(hit.username)
-            label = rarity_label(pts, hit.username)
-            tier_color = {
-                'top': Colors.MAGENTA,
-                'og': Colors.BLUE,
-                'semi_og': Colors.CYAN,
-            }.get(hit.tier.value, Colors.GREEN)
-            tier_str = colorize(hit.tier.value.upper(), tier_color)
-            print(f"{shown:>4}  {colorize(hit.username, Colors.BOLD):<16}  {pts:>5}  {tier_str:<10}  {label}")
-            if shown >= 10:
-                break
-    
+    print_top_available(storage)
+
     return 0 if exported > 0 else 1
 
 
@@ -461,10 +467,12 @@ async def run_check_wordlist_async(
 
                     if result.status == CheckStatus.VERIFIED_AVAILABLE:
                         hits += 1
-                        print_hit(u, RarityTier.SEMI_OG, hits, rarity_points(u))
+                        score = rarity_points(u)
+                        print_hit(u, tier_for_score(score), hits, score)
                     elif result.status == CheckStatus.AVAILABLE and result.source == "mojang-primary":
                         hits += 1
-                        print_hit(u, RarityTier.SEMI_OG, hits, rarity_points(u))
+                        score = rarity_points(u)
+                        print_hit(u, tier_for_score(score), hits, score)
                     elif result.status == CheckStatus.ERROR:
                         errors += 1
                         if result.error_message:
@@ -492,28 +500,8 @@ async def run_check_wordlist_async(
         print(f"Exported {exported} trusted available names to {output_file}")
     
     # Display top 10 available names
-    hits = storage.get_available(verified_only=True, trusted_only=True)
-    if hits:
-        print(f"\n{colorize('Top 10 Available:', Colors.BOLD + Colors.CYAN)}")
-        print(f"{'Rank':>4}  {'Username':<16}  {'Points':>5}  {'Tier':<10}  {'Label'}")
-        print("-" * 60)
-        shown = 0
-        for hit in hits:
-            if is_banned(hit.username):
-                continue
-            shown += 1
-            pts = rarity_points(hit.username)
-            label = rarity_label(pts, hit.username)
-            tier_color = {
-                'top': Colors.MAGENTA,
-                'og': Colors.BLUE,
-                'semi_og': Colors.CYAN,
-            }.get(hit.tier.value, Colors.GREEN)
-            tier_str = colorize(hit.tier.value.upper(), tier_color)
-            print(f"{shown:>4}  {colorize(hit.username, Colors.BOLD):<16}  {pts:>5}  {tier_str:<10}  {label}")
-            if shown >= 10:
-                break
-    
+    print_top_available(storage)
+
     return 0 if exported > 0 else 1
 
 
@@ -596,28 +584,8 @@ async def run_validate_async(
     print(f"Exported {exported} trusted available names to {output_file}")
     
     # Display top 10 available names
-    hits = storage.get_available(verified_only=True, trusted_only=True)
-    if hits:
-        print(f"\n{colorize('Top 10 Available:', Colors.BOLD + Colors.CYAN)}")
-        print(f"{'Rank':>4}  {'Username':<16}  {'Points':>5}  {'Tier':<10}  {'Label'}")
-        print("-" * 60)
-        shown = 0
-        for hit in hits:
-            if is_banned(hit.username):
-                continue
-            shown += 1
-            pts = rarity_points(hit.username)
-            label = rarity_label(pts, hit.username)
-            tier_color = {
-                'top': Colors.MAGENTA,
-                'og': Colors.BLUE,
-                'semi_og': Colors.CYAN,
-            }.get(hit.tier.value, Colors.GREEN)
-            tier_str = colorize(hit.tier.value.upper(), tier_color)
-            print(f"{shown:>4}  {colorize(hit.username, Colors.BOLD):<16}  {pts:>5}  {tier_str:<10}  {label}")
-            if shown >= 10:
-                break
-    
+    print_top_available(storage)
+
     return 0
 
 
@@ -670,28 +638,61 @@ def run_check_wordlist(
     ))
 
 
+def _score_color(score: int) -> str:
+    """Colour by score band, mirroring :func:`src.display.score_color`."""
+    if score >= 800:
+        return Colors.MAGENTA
+    if score >= 600:
+        return Colors.BLUE
+    if score >= 350:
+        return Colors.CYAN
+    if score >= 120:
+        return Colors.GREEN
+    return Colors.GRAY
+
+
 def run_rank(usernames: list) -> int:
-    """Rate usernames with the community rarity model (no API calls)."""
-    from src.models import rarity_label, rarity_points
+    """Rate usernames with the 0-1000 desirability score (no API calls)."""
+    from src.models import rarity_label, rarity_points, tier_for_score
 
     # Sort rarest first, matching export/TUI ordering.
     ranked = sorted(
         usernames, key=lambda u: (-rarity_points(u), len(u), u.lower())
     )
+    print(f"  {'Rank':>4}  {'Username':<18}  {'Score':>5}  {'Tier':<8}  Label")
     for i, username in enumerate(ranked, 1):
-        points = rarity_points(username)
-        label = rarity_label(points, username)
-        color = (
-            Colors.MAGENTA if points >= 60
-            else Colors.BLUE if points >= 40
-            else Colors.CYAN if points >= 20
-            else Colors.GREEN if points >= 3
-            else Colors.GRAY
-        )
+        score = rarity_points(username)
+        label = rarity_label(score, username)
+        color = _score_color(score)
+        tier = tier_for_score(score)
         print(f"  {colorize(f'#{i}', Colors.BOLD + Colors.GOLD)}  "
               f"{colorize(username, Colors.BOLD):<18s}  "
-              f"{colorize(f'{points} pts', color):>8s}  "
+              f"{colorize(f'{score}', color):>5s}  "
+              f"{colorize(tier.value, color):<8s}  "
               f"{colorize(label, color)}")
+    return 0
+
+
+def run_explain(usernames: list) -> int:
+    """Explain a score: class, band and every modifier (no API calls)."""
+    from src.models import score_breakdown
+
+    for index, username in enumerate(usernames):
+        if index:
+            print()
+        info = score_breakdown(username)
+        color = _score_color(info["score"])
+        risk = f"  {colorize('~ reclaim risk', Colors.YELLOW)}" if info["reclaim_risk"] else ""
+        low, high = info["band"]
+        print(f"{colorize(info['username'], Colors.BOLD)}  "
+              f"{colorize(str(info['score']), color + Colors.BOLD)}  "
+              f"{colorize(info['tier'], color)}  "
+              f"{info['class']} ({low}-{high}){risk}")
+        width = info["width"]
+        for name, value in info["modifiers"].items():
+            points = width * value
+            print(f"  {name:<17s} {points:+6.1f}")
+        print(f"  {'score':<17s} {info['base']:>6d} + {info['offset']:+d} = {info['score']}")
     return 0
 
 
@@ -707,6 +708,8 @@ def run_stats() -> int:
     
     print(f"{colorize(' Storage Statistics ', Colors.BOLD + Colors.CYAN):=^60}")
     print(f"Total checked: {colorize(str(total), Colors.BOLD)}")
+    model_version = stats.get("score_model", "?")
+    print(f"Score model: {colorize(f'v{model_version}', Colors.BOLD)} (0-1000)")
     print()
     
     # By Status
@@ -757,7 +760,7 @@ def run_stats() -> int:
 
 
 #: Recognized subcommands (used to detect a bare invocation).
-_COMMANDS = {"snipe", "check", "validate", "stats", "rank"}
+_COMMANDS = {"snipe", "check", "validate", "stats", "rank", "explain"}
 
 
 def _has_command(argv: list[str]) -> bool:
@@ -821,6 +824,12 @@ Examples:
   # Rate usernames without API calls
   python main.py rank dog Sh4dow xqy
 
+  # Explain a score component by component
+  python main.py explain the cities 666
+
+  # Only check names scoring 600+ (OG words and above)
+  python main.py snipe --hits 5 --min-score 600 --no-verify
+
   # Show enhanced statistics
   python main.py stats
 
@@ -868,11 +877,19 @@ Environment:
         help="Output file for verified available names"
     )
     snipe_parser.add_argument(
-        "--min-points", type=int, default=cfg("generation.min_points", 0),
+        "--min-score", type=int, default=cfg("generation.min_score", 0),
         help=(
-            "Skip candidates scoring below this many rarity points (0-80). "
-            "Use e.g. 35 to hunt second-tier and rarer names and avoid "
-            "wasting requests on low-value names. Default: 0 (no gate)"
+            "Skip candidates scoring below this (0-1000). Use e.g. 350 to "
+            "hunt OG and rarer names, 600 for OG words only, 800 for top "
+            "words only. Default: 0 (no gate)"
+        )
+    )
+    snipe_parser.add_argument(
+        "--min-points", type=int, default=None,
+        help=(
+            "Deprecated alias for --min-score on the old 0-80 scale; the "
+            "value is multiplied by 10 (--min-points 35 = --min-score 350). "
+            "Do not pass a 0-1000 value here."
         )
     )
     snipe_parser.add_argument(
@@ -921,6 +938,15 @@ Environment:
     rank_parser.add_argument(
         "usernames", nargs="+", help="One or more usernames to rate"
     )
+
+    # Explain command
+    explain_parser = subparsers.add_parser(
+        "explain", parents=[common],
+        help="Explain a username's score component by component (no API calls)"
+    )
+    explain_parser.add_argument(
+        "usernames", nargs="+", help="One or more usernames to explain"
+    )
     
     args = parser.parse_args(argv)
 
@@ -934,13 +960,22 @@ Environment:
     )
 
     if args.command == "snipe":
+        min_score = args.min_score
+        if args.min_points is not None:
+            min_score = args.min_points * 10
+            print(
+                f"{colorize('[WARN]', Colors.YELLOW)} --min-points is deprecated "
+                f"and uses the old 0-80 scale; {args.min_points} -> "
+                f"--min-score {min_score}. Pass --min-score directly with a "
+                f"0-1000 value."
+            )
         snipe_config = SnipeConfig(
             target_hits=args.hits,
             max_candidates=args.max_candidates,
             tiers=parse_tiers(args.tiers),
             verify_auth=not args.no_verify,
             output_file=args.output,
-            min_points=args.min_points,
+            min_score=min_score,
         )
         snipe_config.verify_all = args.verify_all
         try:
@@ -979,6 +1014,9 @@ Environment:
     
     elif args.command == "rank":
         return run_rank(args.usernames)
+
+    elif args.command == "explain":
+        return run_explain(args.usernames)
     
     return 1
 

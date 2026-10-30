@@ -7,7 +7,7 @@
 generation:
   tiers: "top,og,semi_og"   # comma-separated: top, og, semi_og
   max_candidates: 50000     # upper bound on candidates generated per run
-  min_points: 25             # skip candidates below this rarity score (0-80); 35 = second-tier+
+  min_score: 250            # skip candidates below this 0-1000 score (350 = OG+; 600 = OG words+)
   min_length: 3
   max_length: 16
 

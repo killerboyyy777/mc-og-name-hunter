@@ -9,12 +9,13 @@ A fast, clean Minecraft username sniper that searches for rare available usernam
 - **Canonical Mojang authority** - Only `api.mojang.com/users/profiles/minecraft/` decides public availability; mirrors are hints and must be canonically confirmed
 - **Trusted exports** - Exports contain only auth-verified hits or canonical-confirmed public hits
 - **Validation command** - Revalidates suspect legacy public positives against canonical Mojang
-- **Rarity tiers** - mcindex.gg/Hypixel community model: common short words 80, common words/names 60, 3-letter shapes 52/45, second-tier words 35, 4-letter shapes 20/8, minor variants 12
+- **Rarity score v2** - banded, class-ordered model on a 0-1000 scale (top words 800+, OG words 600+, 3L shapes 520/450/400, semi-OG 350+, 4L shapes 200/80, compounds/leet 120+); modifiers only move a name inside its class band, never across one
+- **Explainable scores** - `rank` lists scores, `explain` shows the class, band and every modifier contribution (no API calls)
 - **Config file** - All settings in `config.yaml`; CLI flags override it, built-in defaults are sane
-- **Rarity gate** - `--min-points` skips low-value names before any API call
+- **Rarity gate** - `--min-score` skips low-value names before any API call
 - **Supplemental themed lists** - Multilingual words, names, geography, nature, mythology/Latin, Wordle, tech, food, music, sports, space, Minecraft creators/meta, brands and compound names, with consensus-scored rarity overrides
 - **Persistent storage** - SQLite tracks checked usernames, prevents re-checking across runs
-- **Smart re-check** - Only re-checks if previously checked at lower priority tier; errors are always rechecked
+- **Smart re-check** - Any name that has been checked before (except `error`/`rate_limited`) is skipped, so rescoring never burns rate-limit budget; transient errors are always retried
 - **Rate limiting** - Token bucket (1.5 req/s, burst 10) with state persistence; authenticated audits are paced to Mojang's 20-per-5-minute limit
 - **Graceful shutdown** - Ctrl+C finishes the current batch and saves progress; press again to force-exit
 
@@ -52,7 +53,7 @@ python main.py --config my.yaml snipe --hits 10
 |-----|---------|-------------|
 | `generation.tiers` | `top,og,semi_og` | Default tiers |
 | `generation.max_candidates` | `50000` | Candidate cap per run |
-| `generation.min_points` | `25` | Rarity gate (`35` = second-tier and above); built-in default is `0` |
+| `generation.min_score` | `250` | Score gate (0-1000): `350` = OG and above, `600` = OG words and above, `800` = top words only; built-in default is `0` |
 | `generation.min_length` / `max_length` | `3` / `16` | Username length bounds |
 | `checking.verify_auth` | `true` | Verify public hits via auth API |
 | `checking.batch_size` | `50` | Usernames per async batch (all commands) |
@@ -170,8 +171,8 @@ authenticated availability endpoint (a taken name can never be banned):
 # Count eligible words without making any API calls
 python audit_wordlists.py --count-only
 
-# Audit everything scoring 45+ (TOP + OG)
-python audit_wordlists.py --min-points 45
+# Audit everything scoring 450+ (3-letter shapes, OG and top words)
+python audit_wordlists.py --min-score 450
 
 # Restrict to specific lists, or start over instead of resuming
 python audit_wordlists.py --lists words_top.txt words_og.txt
@@ -185,14 +186,14 @@ Outputs in `data/`:
 - `wordlist_available.txt` - available words, rarest first (git-ignored)
 
 The audit auto-loads every `*.txt` file, including the themed lists, and uses
-the same `rarity_overrides.tsv` tiers as the sniper. `rarity_overrides.tsv`
-itself is not a word list (it is `.tsv`, so the audit skips it). With the
-themed lists present, `--count-only --min-points 35` reports roughly 107k
-eligible names. A fresh audit has to public-screen all of them (about 2h at
-the default pace); the CSV is resumable, so later runs only process new rows
-and names still awaiting auth checks. At the 35+ threshold about 11.6k
-second-tier names are still waiting on the auth endpoint (~54h at 0.06 rps).
-Use `--lists semi_names.txt` or another themed filename to audit a subset.
+the same `src.rarity` score as the sniper. `rarity_overrides.tsv` itself is not
+a word list (it is `.tsv`, so the audit skips it). With the themed lists
+present, `--count-only --min-score 350` reports roughly 117k eligible names.
+A fresh audit has to public-screen all of them (about 2h at the default pace);
+the CSV is resumable, so later runs only process new rows and names still
+awaiting auth checks. In the current database the 350+ queue is about 10k
+public checks and about 1.5k auth checks. Use `--lists semi_names.txt` or
+another themed filename to audit a subset.
 
 Documented limits: public `200 req / 2 min` per IP (10 names per request) and
 auth `20 req / 5 min` per account. Defaults are `--public-rps 1.5` and
@@ -221,7 +222,8 @@ python verify_banlist.py
 | `--batch-size` | 50 | Batch size for async processing |
 | `--concurrency` | 10 | Max concurrent requests |
 | `--output`, `-o` | data/available.txt | Output file for trusted names |
-| `--min-points` | 0 | Skip candidates scoring below this (0-80); `35` = second-tier and above |
+| `--min-score` | 250 | Skip candidates scoring below this (0-1000); `350` = OG and above, `600` = OG words and above |
+| `--min-points` | — | Deprecated alias on the old 0-80 scale; the value is multiplied by 10 (`--min-points 35` = `--min-score 350`) |
 | `--tui` | false | Use TUI mode with live updating display (elapsed time updates every second) |
 | `--wordlist` | — | Custom list checked before built-in tiers. `PATH[:TIER]`, repeatable |
 
@@ -249,11 +251,20 @@ A global `--config`/`-c PATH` option selects the config file (see
 
 ### `rank`
 
-Rates usernames with the community rarity model. No API calls, results
+Rates usernames with the 0-1000 desirability score. No API calls, results
 sorted rarest-first:
 
 ```bash
 python main.py rank dog Sh4dow xqy
+```
+
+### `explain`
+
+Explains a score component by component (class, band, every modifier). No API
+calls:
+
+```bash
+python main.py explain the cities 666
 ```
 
 ### `stats`
@@ -287,43 +298,88 @@ python main.py snipe --hits 5 --tiers top,og --no-verify
 
 **Note:** TUI mode requires a real terminal (TTY). When output is redirected or piped, it automatically falls back to simple line display. Use `--tui` to force TUI mode even without a TTY.
 
-## Rarity Tiers
+## Rarity score
 
-Based on the community model published by mcindex.gg (18 name classes,
-October 2026), the Hypixel OG-name guides, and NameMC consensus. Common
-English words and popular names score highest; a name is never promoted just
-because it is short.
+The score answers one question: **how desirable is this username to the
+Minecraft name community?** It is a ranking device (0-1000, higher is better),
+not a price. The class ordering follows the community consensus summarised in
+[`docs/name-rarity-community-consensus.md`](docs/name-rarity-community-consensus.md)
+(mcindex.gg's 18 classes cross-checked against Hypixel threads, BuiltByBit
+sales and r/Minecraft); the numbers attached to the classes are this project's
+choice.
 
-| Points | Class | Examples |
-|--------|-------|----------|
-| **80** | Very common English word, <=6 chars (TOP) | dog, stone, dream, fox |
-| **60** | Common English word <=10, popular first name, well-known gaming term (OG) | harbor, swift, candle |
-| **52** | 3 letters, pronounceable | zor, yew |
-| **45** | 3 letters random, or 3 digits | xqz, 777 |
-| **40** | 3-character mixed | a1b |
-| **35** | Second-tier real word: rare English 11+, inflected forms, German, foreign dictionary (SEMI-OG) | wandered, incumbents, meticulous |
-| **20** | 4 letters, pronounceable | vexo, yawl |
-| **12** | Minor feature: compound, compound plural, leet, very rare word/name | ironwolf, policymakers, sh4dow |
-| **8** | 4 letters, random | qzvk |
-| **5** | 4-character mixed | a1b2 |
-| **3** | Clean readable handle, or word + trailing digits/level | shadow7, sharpnessV |
-| **0** | Nothing special | |
+Scoring is **class-first, then tiebreak**. A name is placed in exactly one
+class, and modifiers only move it inside that class's band, so no combination
+of tiebreaks can promote a random 3-letter name to "almost a word":
 
-Scoring is by community points (higher = rarer); names with equal points are
-ordered by shorter length, then tier. Capitals never matter. Points are
-stored per row in SQLite (`rarity_points`, backfilled automatically), so
-older database rows are reordered by the current model.
+```
+base  = class value x 10            # see table below
+width = min(99, next_base - base - 1)
+score = base + round(width * normalization(modifiers))
+```
+
+| Score | Class | Examples |
+|-------|-------|----------|
+| **900-999** | 1-2 characters (legacy-only, rank/explain) | zq |
+| **850-899** | Illegal characters (rank/explain only) | |
+| **800-849** | Top word: common English word <=6 chars, popular first name | the, dog, dream, fox |
+| **600-699** | OG word: common English word <=10, gaming term, German word | because, shadow, harbor, wasser |
+| **520-599** | 3 letters, pronounceable | elk, yew |
+| **450-519** | 3 letters random / 3 digits (repeaters `666`/`777`/`100` at the top) | xqz, 482, 666 |
+| **400-449** | 3-character mixed | a1b, o_o |
+| **350-399** | Semi-OG: other non-English words, inflections, rare long words | obtaining, perro, sakura |
+| **200-299** | 4 letters, pronounceable | vexo, yawl |
+| **120-199** | Compound / leet / curated rare (compounds near the top) | ironwolf, cities, sh4dow |
+| **80-119** | 4 letters, random (bottom of band = closest to the 4L class floor) | qzvk, xkrt |
+| **50-79** | 4-character mixed | a1b2 |
+| **30-49** | Clean handle, or word + trailing digits/level | shadow7, sharpnessV |
+| **0-29** | Nothing special | |
+
+Within a class the tiebreaks are frequency, length, pronounceability (3L/4L
+only), form purity (no leet/underscores/trailing digits), curated
+pattern/culture bonuses in `data/word_lists/rarity_patterns.tsv`, and a
+reclaim-risk penalty for brand/meme names in
+`data/word_lists/reclaim_risk.txt`. Frequency is used only where it is
+meaningful (word classes); in shape classes `wordfreq` returns noise for
+abbreviation-like strings. Because the raw components are concentrated, each
+class maps its measured modifier range onto the full band
+(`_CLASS_SPREAD` in `src/rarity.py`, measured on the built-in 50,409-name
+corpus). On that corpus this yields **274 distinct scores** with the largest
+bucket holding **3.6%** of names, versus 13 values with one bucket holding
+**22%** under the old model.
+
+Tiers are derived from the score, never stored independently: **TOP >= 800**,
+**OG >= 350**, **SEMI_OG < 350**. Scores are stored per row in SQLite
+(`rarity_points` plus a `score_model` version), and opening a database written
+by an older model rescored every row in place - one transaction, no API calls,
+status/verification/timestamps untouched, status counts verified before
+commit. Opening it again is a no-op.
 
 Community notes: 1-2 character names are legacy-only and effectively
 unobtainable; 3-letter names are exhausted; 4-letter availability correlates
 with pronounceability and rare letters (`q/j/x/z/k/v`). Hypixel's definition
 of OG is the word alone, with no affixes or leetspeak; `o_o` and `x_x` are
-explicit exceptions.
+explicit exceptions. Reclaimable brand names are scored with a penalty and
+flagged with `~` in `explain`, not refused.
 
 Sources: [mcindex.gg/names](https://mcindex.gg/names),
 [mcindex.gg guides](https://mcindex.gg/guides),
 [Hypixel OG guide](https://hypixel.net/threads/guide-everything-you-need-to-know-about-og-names.2036535),
 [stupidfoot 4-letter analysis](https://stupidfoot.com/blog/minecraft-og-usernames/).
+The full write-up and its confidence levels are in
+[`docs/name-rarity-community-consensus.md`](docs/name-rarity-community-consensus.md).
+
+### Exports
+
+`data/available.txt` (and every `--output` file) is tab separated, rarest
+first:
+
+```
+username <TAB> tier <TAB> status <TAB> source <TAB> banned_flag <TAB> score
+```
+
+The `score` column was appended in score model 2; consumers that read the first
+five columns keep working. `--min-score` filters the export too.
 
 ## API Endpoints
 
@@ -362,17 +418,17 @@ Files in `data/word_lists/`:
 Themed lists from `generate_themed_wordlists.py` (all words are also recorded
 in `rarity_overrides.tsv`):
 
-- `rare_names.txt` (supplemental 60+ names) and `semi_names.txt` (~54.6k
+- `rare_names.txt` (supplemental 600+ names) and `semi_names.txt` (~54.6k
   lower-tier names) - deduped aggregates, shortest first. The core corpus
   already contains the common English OG words, so `rare_names.txt` can be
-  empty while the second-tier aggregate holds the supplemental names.
+  empty while the semi-OG aggregate holds the supplemental names.
 - `og_multilingual_*.txt` - 33 languages via `wordfreq` (Spanish, French,
   German, Italian, Portuguese, Dutch, Nordic, Polish, Czech, Slovak, Hungarian,
   Romanian, Turkish, Indonesian, Malay, Vietnamese, Tagalog, Afrikaans,
   Croatian, Serbian, Bulgarian, Ukrainian, Russian, Greek, Arabic, Persian,
   Hindi, Japanese, Korean, Chinese, ...). Latin-script transliterations are
-  used for non-Latin scripts. Foreign dictionary words are second-tier (35)
-  unless English usage makes the base model score them higher.
+  used for non-Latin scripts. Foreign dictionary words are semi-OG (350)
+  unless English usage or a curated hint makes them score higher.
 - `og_names_first.txt` / `og_names_surnames.txt` - public first-name and
   Census-surname datasets, filtered to 3-16 ASCII letters
 - `og_geo.txt` - countries, capitals, ISO codes, US states, Canadian
@@ -385,15 +441,20 @@ in `rarity_overrides.tsv`):
   `og_cosmos.txt`, `og_brands.txt` - specialist vocabulary
 - `og_mc_creators.txt`, `og_mc_meta.txt` - Minecraft creators and SMP terms
 - `semi_foreign_words.txt` - widely used loanwords and foreign dictionary
-  words (second-tier, 35 pts unless English usage raises them)
+  words (semi-OG, 350 unless English usage raises them)
 - `semi_compounds.txt` - pronounceable root+suffix handles such as
-  `ironclaw`/`frostwing` (minor name feature, 12 pts)
+  `ironclaw`/`frostwing` (compound class, 120)
 
-`rarity_overrides.tsv` maps every themed word to its consensus points
-(12/20/35/40/45/52/60/80).
-`src.models.rarity_points` uses `max(English model, curated tier)`, so the
-generator, prefilter, storage, display, exports and audit all agree. The file
-is bundled into the executable by the existing `data/word_lists` data entry.
+`rarity_overrides.tsv` records a class floor for every themed word
+(`word<TAB>hint[<TAB>class]`). Hints may be legacy 0-80 values, which are
+reinterpreted as the matching class floor (`80` -> 800, `60` -> 600, `52` ->
+520, `35` -> 350, `20` -> 200, `12` -> 120, ...), or 0-1000 class bases; an
+explicit third class column wins. The shipped file is still the legacy
+two-column form, so it is read as class floors. `src.rarity.classify` applies
+the floor after the base classification and never lets a hint downgrade a
+name, so the generator, prefilter, storage, display, exports and audit all
+agree. The file is bundled into the executable by the existing
+`data/word_lists` data entry.
 
 Regenerate with:
 ```bash

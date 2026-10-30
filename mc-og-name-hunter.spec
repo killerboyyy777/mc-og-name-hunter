@@ -10,10 +10,14 @@ Use ``python -m PyInstaller`` so the build runs with the interpreter that has
 
 Output: ``dist/mc-og-name-hunter.exe`` (single file, console).
 
-``wordfreq`` ships ~60 MB of per-language frequency data, but the rarity
-model only ever queries English, so only the English lists are bundled. The
-word lists under ``data/word_lists`` are packed into the executable and
-resolved at runtime via ``src/paths.py`` (``sys._MEIPASS``).
+``wordfreq`` ships ~60 MB of per-language frequency data, but the rarity score
+only queries English (``src/rarity.py``), so only the English lists are
+bundled. Multilingual classes come from the curated lists under
+``data/word_lists`` instead: ``german.txt`` for the German OG class,
+``rarity_overrides.tsv`` for themed class floors, ``rarity_patterns.tsv`` for
+culture/repeater bonuses and ``reclaim_risk.txt`` for brand-risk penalties.
+Those files are packed into the executable and resolved at runtime via
+``src/paths.py`` (``sys._MEIPASS``).
 """
 
 from pathlib import Path
@@ -24,7 +28,7 @@ datas = [("data/word_lists", "data/word_lists")]
 binaries = []
 hiddenimports = collect_submodules("wordfreq")
 
-# English frequency lists only (used by src/models.py via zipf_frequency()).
+# English frequency lists only (used by src/rarity.py via zipf_frequency()).
 _wordfreq_dir = get_package_paths("wordfreq")[1]
 for _name in ("small_en.msgpack.gz", "large_en.msgpack.gz"):
     datas.append((str(Path(_wordfreq_dir) / "data" / _name), "wordfreq/data"))
