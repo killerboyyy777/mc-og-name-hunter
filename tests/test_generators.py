@@ -120,3 +120,15 @@ def test_create_generator_passes_min_score(small_lists):
     )
     assert generator.min_score == 800
     assert [c.username for c in generator.generate()] == ["the"]
+
+
+def test_generate_with_zero_max_candidates_yields_nothing(small_lists):
+    """A ``max_candidates`` of 0 must stop immediately, not run forever."""
+    generator = CandidateGenerator(
+        tiers=[RarityTier.TOP, RarityTier.OG, RarityTier.SEMI_OG],
+        min_length=3, max_length=16,
+        storage=FakeStorage(),
+        min_score=0,
+    )
+    assert list(generator.generate(max_candidates=0)) == []
+    assert generator.exhausted

@@ -36,6 +36,9 @@ class TokenBucket:
                 # Account for time passed since last save
                 elapsed = time.monotonic() - data.get("timestamp", time.monotonic())
                 self._tokens = min(self.burst, self._tokens + elapsed * self.rate)
+                # Mark that we have consumed the saved elapsed time; otherwise
+                # the next take() would add it again and over-fill the bucket.
+                self._last_update = time.monotonic()
             except Exception:
                 pass  # Use defaults on error
     

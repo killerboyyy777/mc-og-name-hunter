@@ -11,6 +11,8 @@ runs, the sniper picks the token up automatically without exporting anything.
 import os
 import sys
 import json
+import time
+import base64
 from pathlib import Path
 from typing import Optional
 from mcauth3 import MCMSA, OAuthError
@@ -28,18 +30,50 @@ def _candidate_paths() -> list[Path]:
     return paths
 
 
+def _token_expires_at(token: str) -> Optional[float]:
+    """Return the JWT ``exp`` claim for a token, or None if not parseable."""
+    parts = token.split(".")
+    if len(parts) < 2:
+        return None
+    payload_b64 = parts[1]
+    # Pad to a multiple of 4
+    payload_b64 += "=" * (-len(payload_b64) % 4)
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64).decode("utf-8"))
+    except Exception:
+        return None
+    exp = payload.get("exp")
+    return float(exp) if exp is not None else None
+
+
+def _is_token_valid(token: str, leeway_seconds: int = 300) -> bool:
+    """Return True if the token exists and is not within leeway of expiry."""
+    if not token:
+        return False
+    exp = _token_expires_at(token)
+    if exp is None:
+        # Opaque strings (no dots) are accepted and validated by the API later.
+        # JWT-shaped strings that fail parsing are rejected here to avoid using
+        # a clearly broken token.
+        return "." not in token
+    return time.time() + leeway_seconds < exp
+
+
 def get_access_token() -> Optional[str]:
     """Return a Minecraft access token, or ``None`` if none is available."""
     token = os.environ.get("MOJANG_ACCESS_TOKEN")
-    if token and token.strip():
+    if token and token.strip() and _is_token_valid(token.strip()):
         return token.strip()
 
+    # File tokens are only returned if still valid.  If expired, try silent
+    # refresh first; this avoids returning a token that the caller will use
+    # and then fail with 401.
     for path in _candidate_paths():
         try:
             token = path.read_text(encoding="utf-8").strip()
         except OSError:
             continue
-        if token:
+        if token and _is_token_valid(token):
             return token
 
     # Attempt silent refresh
@@ -49,7 +83,7 @@ def get_access_token() -> Optional[str]:
                 token = path.read_text(encoding="utf-8").strip()
             except OSError:
                 continue
-            if token:
+            if token and _is_token_valid(token):
                 return token
 
     return None

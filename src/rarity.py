@@ -188,6 +188,7 @@ _CLASSES: list[NameClass] = [
     NameClass("clean", "clean handle", 30, (3, 16), short_shape=True),
     NameClass("4char_mixed", "4-char mixed", 50, (4, 4), short_shape=True),
     NameClass("4l_random", "4L random", 80, (4, 4), short_shape=True),
+    NameClass("4digit", "4-digit number", 100, (4, 4)),
     NameClass("compound", "compound / leet / rare", 120, (3, 16), 2.0, True),
     NameClass("4l_pronounceable", "4L pronounceable", 200, (4, 4), 0.0, True),
     NameClass("semi_og", "semi-OG", 350, (3, 16), 2.5),
@@ -489,7 +490,12 @@ def classify(username: str) -> NameClass:
     if name.isalpha():
         cls = _classify_alpha(name)
     elif name.isdigit():
-        cls = _CLASS_BY_KEY["3l_random"] if len(name) == 3 else _CLASS_BY_KEY["nothing"]
+        if len(name) == 3:
+            cls = _CLASS_BY_KEY["3l_random"]
+        elif len(name) == 4:
+            cls = _CLASS_BY_KEY["4digit"]
+        else:
+            cls = _CLASS_BY_KEY["nothing"]
     else:
         cls = _classify_mixed(name)
 

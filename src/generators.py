@@ -190,10 +190,10 @@ class CandidateGenerator:
         emitted: set[str] = set()
 
         def remaining() -> Optional[int]:
-            return (max_candidates - yielded) if max_candidates else None
+            return (max_candidates - yielded) if max_candidates is not None else None
 
         for filename, tier, source_label in self.extra_lists:
-            if max_candidates and yielded >= max_candidates:
+            if max_candidates is not None and yielded >= max_candidates:
                 break
             
             words = self._filtered_cache.get(f"custom_{filename}_{tier.value}", [])
@@ -203,11 +203,11 @@ class CandidateGenerator:
             ):
                 yield candidate
                 yielded += 1
-                if max_candidates and yielded >= max_candidates:
+                if max_candidates is not None and yielded >= max_candidates:
                     break
         
         for tier in self.tiers:
-            if max_candidates and yielded >= max_candidates:
+            if max_candidates is not None and yielded >= max_candidates:
                 break
             
             # Get pre-filtered words for this tier
@@ -218,7 +218,7 @@ class CandidateGenerator:
             ):
                 yield candidate
                 yielded += 1
-                if max_candidates and yielded >= max_candidates:
+                if max_candidates is not None and yielded >= max_candidates:
                     break
         
         self._exhausted = True
@@ -235,7 +235,7 @@ class CandidateGenerator:
         yielded = 0
         
         for word, zipf in words:
-            if remaining and yielded >= remaining:
+            if remaining is not None and yielded >= remaining:
                 break
             
             # Validate length
