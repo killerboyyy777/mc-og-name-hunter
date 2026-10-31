@@ -208,6 +208,22 @@ using a separate auth limiter paced at `0.06 rps`:
 python verify_banlist.py
 ```
 
+### Rarest-available search
+
+`find_rarest_available.py` scores every unchecked word-list name, walks the list
+in descending score order, and stops as soon as `--target` names are
+auth-verified available. Because the walk is score-ordered, the first names that
+survive verification *are* the rarest free ones, so it never needs to check the
+whole corpus.
+
+```bash
+python find_rarest_available.py                     # top 20, floor 300
+python find_rarest_available.py --target 50 --floor 400
+```
+
+Results are written to `data/rarest_available_20.txt` / `.json` and saved to the
+database.
+
 ## Command Reference
 
 ### `snipe`
@@ -540,6 +556,8 @@ mc-og-name-hunter/
 ├── get_token.py                  # Device-code login -> data/mojang_token.txt
 ├── audit_wordlists.py            # Two-phase word-list audit (public + auth)
 ├── verify_banlist.py             # Re-check the banlist against the APIs
+├── score_report.py                # Score distribution / tie report
+├── find_rarest_available.py       # Search for the N rarest available names
 ├── data/
 │   ├── checked.db                # SQLite database (created at runtime, git-ignored)
 │   ├── available.txt             # Exported trusted names (git-ignored)

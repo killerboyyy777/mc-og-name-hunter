@@ -55,3 +55,8 @@ data/mcauth_device.json
 tmp_*
 scratch/
 data/themed_cache/
+data/scratch/
+
+# Runtime results of the "find rarest available" searches
+data/rarest_available_*.txt
+data/rarest_available_*.json
