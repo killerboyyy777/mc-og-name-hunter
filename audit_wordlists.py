@@ -49,7 +49,7 @@ from src.models import rarity_points
 
 VALID_USERNAME = re.compile(r"^[A-Za-z0-9_]{3,16}$")
 
-PUBLIC_URL = "https://api.mojang.com/profiles/minecraft"
+PUBLIC_URL = "https://api.minecraftservices.com/minecraft/profile/lookup/bulk/byname"
 AUTH_URL = "https://api.minecraftservices.com/minecraft/profile/name/{}/available"
 
 FINAL_STATUSES = {"available", "taken", "banned"}
