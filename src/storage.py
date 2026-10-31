@@ -20,8 +20,9 @@ from src.models import (
     tier_for_score,
 )
 
-#: Bump when the scoring model changes; rows with another value are rescored.
-SCORE_MODEL = 2
+#: Bump when the scoring model *or its data* (wordlist hints) changes; rows
+#: with another value are rescored on open, without touching availability.
+SCORE_MODEL = 3
 
 #: Statuses that do not count as "checked": they are retried on the next run.
 RETRYABLE_STATUSES = (CheckStatus.ERROR.value, CheckStatus.RATE_LIMITED.value)

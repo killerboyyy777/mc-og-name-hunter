@@ -54,7 +54,9 @@ GOLDEN = {
     "a1b": (427, "3-char mixed"),
     "a_b": (418, "3-char mixed"),
     "q7x": (419, "3-char mixed"),
-    "vexo": (245, "4L pronounceable"),
+    # Galician "vexo" ("I see") is listed in og_multilingual_gl.txt, so the
+    # non-English word hint moves it into the semi-OG band.
+    "vexo": (375, "semi-OG"),
     "zaza": (387, "semi-OG"),
     "qzvk": (89, "4L random"),
     "xkrt": (89, "4L random"),

@@ -423,10 +423,16 @@ Files in `data/word_lists/`:
 - First names variants
 - `short_all_3_4.txt` (474,552 names: all a-z 3-letter then 4-letter combos)
 - `digits_all_3.txt` (1,000 names: all 3-digit combos `000`–`999`)
+- `digits_all_4.txt` (10,000 names: all 4-digit combos `0000`–`9999`)
+- `alnum_mixed_3.txt` (28,080 names: every 3-character letter/digit combo)
 - `underscore_pairs_3.txt` (2,028 names: `ab_`, `_ab`, `a_b` patterns)
+- `underscore_shapes.txt` (23,394 names: `_word`, `word_`, `__ab`, `a_b_c` and
+  the other short underscore shapes players actually register)
 - `faces.txt` (face emoticons like `o_o`, `x_x` — a community OG exception)
 - `gaming_terms.txt` (~410 well-known gaming terms: `clutch`, `noscope`, `smurf`…)
-- `german.txt` (~16,700 common German words — an explicit semi-OG class)
+- `leet.txt` (1,700 community leet spellings: `n00b`, `tr0ll`, `gh0st`,
+  `ph4ntom`, plus substitutions generated from common English words)
+- `german.txt` (~16,700 common German words — an explicit OG-class exception, 600+)
 - `halloween.txt` (~150 spooky/Halloween words)
 - `minecraft_items.txt` (~2,890 names: hand-curated blocks, items, tools, armor, food, mobs, discs, enchantments (incl. in-game Roman level variants like `sharpnessV`/`sharpness_V`), villager professions, splash texts, generic game words like `armor`/`biome`/`spawn`, jockey mechanics like `chicken_jockey`, wood-type/wool-color/material×tool expansions, **plus every name from the PrismarineJS minecraft-data 26.1 registry** — items, blocks, entities, enchantments, effects, biomes)
 - Proper-noun lists from `generate_extra_wordlists.py`: `franchise_characters.txt`, `minecraft_ecosystem.txt`, `brands.txt`, `music_artists.txt`, `sports.txt`, `famous_people.txt`, `astronomy.txt`, `chemistry.txt` (names already present in the core corpus are dropped to avoid duplicate requests)
@@ -434,17 +440,18 @@ Files in `data/word_lists/`:
 Themed lists from `generate_themed_wordlists.py` (all words are also recorded
 in `rarity_overrides.tsv`):
 
-- `rare_names.txt` (supplemental 600+ names) and `semi_names.txt` (~54.6k
-  lower-tier names) - deduped aggregates, shortest first. The core corpus
-  already contains the common English OG words, so `rare_names.txt` can be
-  empty while the semi-OG aggregate holds the supplemental names.
-- `og_multilingual_*.txt` - 33 languages via `wordfreq` (Spanish, French,
-  German, Italian, Portuguese, Dutch, Nordic, Polish, Czech, Slovak, Hungarian,
-  Romanian, Turkish, Indonesian, Malay, Vietnamese, Tagalog, Afrikaans,
-  Croatian, Serbian, Bulgarian, Ukrainian, Russian, Greek, Arabic, Persian,
-  Hindi, Japanese, Korean, Chinese, ...). Latin-script transliterations are
-  used for non-Latin scripts. Foreign dictionary words are semi-OG (350)
-  unless English usage or a curated hint makes them score higher.
+- `rare_names.txt` (24,702 names at 600+, rebuilt from every list in this
+  directory) and `semi_names.txt` (~54.6k lower-tier names) - deduped
+  aggregates, shortest first.
+- `repeaters.txt` (3,346 names: `aaaaa`, `ababab`, `abc123`, digit runs and
+  other pattern shapes)
+- `og_multilingual_*.txt` - 50 languages (33 via `wordfreq`, 11 from the
+  FrequencyWords OpenSubtitles lists, 6 hand-curated). Latin-script
+  transliterations are used for non-Latin scripts. Foreign dictionary words are
+  semi-OG (350) unless English usage or a curated hint makes them score higher.
+- `og_esports_orgs.txt` / `og_streamers.txt` - esports organisations
+  (`fnatic`, `cloud9`, `g2esports`) and streaming personalities (`pokimane`,
+  `jynxzi`, `ishowspeed`), hinted into the OG band
 - `og_names_first.txt` / `og_names_surnames.txt` - public first-name and
   Census-surname datasets, filtered to 3-16 ASCII letters
 - `og_geo.txt` - countries, capitals, ISO codes, US states, Canadian
@@ -478,12 +485,30 @@ python generate_wordlists.py        # tier lists (wordfreq-based)
 python generate_custom_wordlists.py # short combos, digits, underscores, faces, Halloween, German, Minecraft items
 python generate_extra_wordlists.py  # franchise/game, Minecraft, brands, music, sports, people, astronomy, chemistry
 python generate_themed_wordlists.py # multilingual, names, geo, nature, mythology, Wordle, tech, food, music, sports, space, MC, brands, compounds
+python generate_missing_wordlists.py # leet, underscore shapes, repeaters, esports/streamers, 17 extra languages, rare_names.txt
 ```
 
 `generate_extra_wordlists.py` downloads from PokeAPI/LoL/Valorant/Overwatch
 and falls back to curated data with `--offline`. Generated/combo lists must be
 regenerated after a fresh clone (`data/word_lists/` ships the curated lists;
 `short_all_3_4.txt` — 474,552 names — is produced by the custom generator).
+
+### Enumeration coverage
+
+The shipped lists cover the name spaces players actually compete over:
+
+| Space | Covered | Total |
+| --- | --- | --- |
+| 3-letter `a-z` | 17,576 | 17,576 (100%) |
+| 4-letter `a-z` | 456,976 | 456,976 (100%) |
+| 3-digit | 1,000 | 1,000 (100%) |
+| 4-digit | 10,000 | 10,000 (100%) |
+| 3-character alphanumeric | ~48,800 | 46,656 letters+digits (complete, plus `_` shapes) |
+| 4-character alphanumeric | 470,482 | 1,679,616 (28%) |
+
+The full 1.2M four-character alphanumeric space is split across
+`data/scratch/alnum_mixed_4_part*.txt` (gitignored, not bundled); point
+`find_rarest_available.py` at it locally if you want to sweep it.
 
 ## Requirements
 
