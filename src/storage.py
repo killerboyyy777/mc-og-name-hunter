@@ -22,7 +22,7 @@ from src.models import (
 
 #: Bump when the scoring model *or its data* (wordlist hints) changes; rows
 #: with another value are rescored on open, without touching availability.
-SCORE_MODEL = 3
+SCORE_MODEL = 4
 
 #: Statuses that do not count as "checked": they are retried on the next run.
 RETRYABLE_STATUSES = (CheckStatus.ERROR.value, CheckStatus.RATE_LIMITED.value)
@@ -191,9 +191,14 @@ class Storage:
     def get_available(self, verified_only: bool = True, trusted_only: bool = True) -> list[CheckResult]:
         """Get available usernames from database, ordered by score (rarest first).
 
-        Trusted results are auth-verified hits or public AVAILABLE decisions made
-        by the canonical Mojang endpoint. Legacy public AVAILABLE rows without
-        provenance are excluded when trusted_only is True.
+        Three explicit scopes, so ``False/False`` can never silently mean
+        "unverified only":
+
+        * ``trusted_only=True`` - auth-verified hits plus public AVAILABLE
+          decisions made by the canonical Mojang endpoint. This is the default.
+        * ``verified_only=True`` (with ``trusted_only=False``) - auth-verified
+          hits only.
+        * both ``False`` - every available row, verified or not.
         """
         score_order = """
             COALESCE(rarity_points, 0) DESC,
@@ -221,18 +226,18 @@ class Storage:
             elif verified_only:
                 cursor = conn.execute(
                     f"""SELECT * FROM checked
-                       WHERE status IN (?, ?)
+                       WHERE status = ?
                        ORDER BY {score_order}
                     """,
-                    (CheckStatus.VERIFIED_AVAILABLE.value, CheckStatus.AVAILABLE.value)
+                    (CheckStatus.VERIFIED_AVAILABLE.value,)
                 )
             else:
                 cursor = conn.execute(
                     f"""SELECT * FROM checked
-                       WHERE status = ?
+                       WHERE status IN (?, ?)
                        ORDER BY {score_order}
                     """,
-                    (CheckStatus.AVAILABLE.value,)
+                    (CheckStatus.AVAILABLE.value, CheckStatus.VERIFIED_AVAILABLE.value)
                 )
             return [self._row_to_result(row) for row in cursor.fetchall()]
 

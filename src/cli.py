@@ -16,6 +16,7 @@ from src.models import (
     SnipeConfig, RarityTier, CheckStatus, CheckResult, UsernameCandidate,
     rarity_points, rarity_label, is_banned,
 )
+from src import __version__
 from src.storage import get_storage
 from src.rate_limiter import get_rate_limiter
 from src.checkers import (
@@ -783,7 +784,9 @@ def main(argv: Optional[list[str]] = None):
     argv = list(sys.argv[1:] if argv is None else argv)
     # With no subcommand (e.g. double-clicking the executable), default to a
     # snipe using config/default settings instead of erroring out.
-    if not _has_command(argv) and not any(a in ("-h", "--help") for a in argv):
+    if not _has_command(argv) and not any(
+        a in ("-h", "--help", "--version") for a in argv
+    ):
         argv = ["snipe", *argv]
     try:
         settings = load_config(find_config_path(argv))
@@ -809,6 +812,7 @@ def main(argv: Optional[list[str]] = None):
         parents=[common],
         epilog="""
 Examples:
+
   # Snipe for 5 verified available names from top/og tiers
   python main.py snipe --hits 5 --tiers top,og
 
@@ -839,6 +843,10 @@ Values are resolved in this order (highest wins): CLI flags > config file
 Environment:
   MOJANG_ACCESS_TOKEN  - Microsoft/Minecraft access token for auth verification
         """
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}",
+        help="Print the program version and exit",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     

@@ -135,6 +135,45 @@ def _is_inflected(word: str, z: float) -> bool:
     return False
 
 
+#: German inflection endings, longest first so "ungen" is tried before "en".
+_GERMAN_SUFFIXES = (
+    "ungen", "heiten", "keiten", "nisse", "ung", "heit", "keit", "nis",
+    "ten", "te", "en", "er", "es", "em", "et", "st", "t", "e", "s", "n",
+)
+
+
+def _german_stem(word: str) -> str | None:
+    """Return the dictionary stem if ``word`` is an inflected German form.
+
+    ``german.txt`` is a lemma list, so a form whose stripped stem is also in
+    the list is inflected: ``legte -> leg``, ``arztes -> arzt``,
+    ``bahnen -> bahn``.  Strong verbs with a stem change (``wirbt -> werben``)
+    are missed; that is acceptable for a tiebreak.
+    """
+    words = _german_words()
+    if not words or word not in words:
+        return None
+    # german.txt is a frequency-derived list and also holds English loanwords
+    # ("because", "days", "the").  A word that has English frequency is scored
+    # through the English heuristics, never as a German inflection.
+    if _zipf(word) > 0:
+        return None
+    for suffix in _GERMAN_SUFFIXES:
+        if not word.endswith(suffix):
+            continue
+        stem = word[: -len(suffix)]
+        if len(stem) < 3:
+            continue
+        # The list holds lemmas, so the stem itself may be stored with an
+        # infinitive ending: ``sorgt -> sorg -> sorgen``.  Never accept a
+        # candidate that is the word itself (``suffix="e"`` would always
+        # match, which is how "because" used to be flagged).
+        for candidate in (stem, stem + "en", stem + "n"):
+            if candidate != word and candidate in words:
+                return stem
+    return None
+
+
 def _is_compound_plural(word: str) -> bool:
     """Heuristic for plurals whose singular is a compound noun.
 
@@ -536,6 +575,7 @@ WEIGHTS: dict[str, float] = {
     "form": 0.15,             # leet/underscore/trailing-digit purity
     "pattern": 0.20,          # curated repeaters / culture strings
     "reclaim": -0.25,         # brand/meme risk, applied last
+    "inflection": -0.12,      # grammatical forms rank below their lemma
 }
 
 #: Pronounceability passes only 26% of 3L and 15% of 4L, so it is worth at most
@@ -553,6 +593,11 @@ _ZIPF_TOP = 6.5
 _FREQUENCY_CLASSES = frozenset({
     "top", "og", "semi_og", "compound", "3l_pronounceable", "4l_pronounceable",
 })
+
+#: Classes where "is this a dictionary form or an inflection" is a meaningful
+#: question.  Shape classes (3L random, 4-char mixed) have no lemma to compare
+#: against, so they are untouched.
+_INFLECTION_CLASSES = frozenset({"top", "og", "semi_og", "compound"})
 
 #: Practical range of the weighted modifier sum inside each class, measured on
 #: the built-in 50,409-name corpus.  The sum is mapped linearly from this range
@@ -624,6 +669,24 @@ def _is_reclaim_risk(name: str) -> bool:
     return name in _reclaim_risk()
 
 
+def _inflection_value(name: str, cls: NameClass) -> float:
+    """1.0 when the name is a grammatical form rather than a dictionary word.
+
+    Inside a word class, inflections sit alphabetically beside their lemma, so
+    a naive tiebreak fills the band with ``legte``, ``sorgt``, ``arztes``
+    before any clean noun.  The community compares names as words, and a
+    plural or a past tense is worth less than the word it comes from.
+    """
+    if cls.key not in _INFLECTION_CLASSES:
+        return 0.0
+    z = _zipf(name)
+    if z > 0 and _is_inflected(name, z):
+        return 1.0
+    if _german_stem(name):
+        return 1.0
+    return 0.0
+
+
 def within_class_offset(username: str) -> tuple[float, dict[str, float]]:
     """Return ``(total, components)`` where total is in [0, 1].
 
@@ -643,6 +706,7 @@ def within_class_offset(username: str) -> tuple[float, dict[str, float]]:
         "form": WEIGHTS["form"] * _form_value(name, cls),
         "pattern": WEIGHTS["pattern"] * _pattern_value(name, cls),
         "reclaim": WEIGHTS["reclaim"] * (1.0 if _is_reclaim_risk(name) else 0.0),
+        "inflection": WEIGHTS["inflection"] * _inflection_value(name, cls),
     }
     raw = sum(components.values())
     lo, hi = _CLASS_SPREAD.get(cls.key, _DEFAULT_SPREAD)

@@ -35,7 +35,7 @@ GOLDEN = {
     "harbor": (659, "OG word"),
     "daniel": (802, "top word"),
     "teacher": (674, "OG word"),
-    "obtaining": (381, "semi-OG"),
+    "obtaining": (358, "semi-OG"),  # -ing form; inflection modifier lowers it
     "cities": (187, "compound / leet / rare"),
     "policymakers": (150, "compound / leet / rare"),
     "ironwolf": (147, "compound / leet / rare"),
@@ -179,6 +179,17 @@ def test_german_words_are_og_but_anglicisms_keep_their_class():
     # not be promoted or demoted by membership.
     assert classify("days").key == "semi_og"
     assert classify("the").key == "top"
+
+
+def test_german_inflections_rank_below_uninflected_nouns():
+    # german.txt is a lemma list, so a form whose stripped stem is also in it
+    # is an inflection and ranks below plain nouns in the same band.
+    assert rarity._german_stem("legte") == "leg"
+    assert rarity._german_stem("arztes") == "arzt"
+    assert rarity._german_stem("bahn") is None
+    # English words appear in german.txt ("because") and must not be flagged.
+    assert rarity._german_stem("because") is None
+    assert score("legte") < score("bistum")
 
 
 def test_reclaim_risk_is_flagged_and_penalised():

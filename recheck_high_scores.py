@@ -148,6 +148,7 @@ def auth_phase(usernames: list[str]) -> dict[str, tuple[str, str]]:
 
     for name in tqdm(usernames, unit="name"):
         backoffs = 0
+        refreshed = False
         while True:
             try:
                 resp = session.get(AUTH_URL.format(name), headers=headers, timeout=20)
@@ -168,6 +169,14 @@ def auth_phase(usernames: list[str]) -> dict[str, tuple[str, str]]:
                 continue
 
             if resp.status_code == 401:
+                # Long sweeps outlive a token; refresh once and retry this name
+                # instead of marking the rest of the run as errors.
+                fresh = get_access_token() if not refreshed else None
+                if fresh and fresh != token:
+                    token = fresh
+                    refreshed = True
+                    headers["Authorization"] = f"Bearer {token}"
+                    continue
                 results[name] = ("error", "invalid or expired auth token")
                 break
 

@@ -355,8 +355,12 @@ Within a class the tiebreaks are frequency, length, pronounceability (3L/4L
 only), form purity (no leet/underscores/trailing digits), curated
 pattern/culture bonuses in `data/word_lists/rarity_patterns.tsv`, and a
 reclaim-risk penalty for brand/meme names in
-`data/word_lists/reclaim_risk.txt`. Frequency is used only where it is
-meaningful (word classes); in shape classes `wordfreq` returns noise for
+`data/word_lists/reclaim_risk.txt`. Inflected forms are pushed to the bottom
+of their band: English `-ing/-ed/-es/-s` and German case/number endings
+(`legte`, `arztes`, `bahnen`) rank below their uninflected neighbours, because
+a grammatical form of a word is a weaker name than the word itself. Frequency
+is used only where it is meaningful (word classes); in shape classes
+`wordfreq` returns noise for
 abbreviation-like strings. Because the raw components are concentrated, each
 class maps its measured modifier range onto the full band
 (`_CLASS_SPREAD` in `src/rarity.py`, measured on the built-in 50,409-name
@@ -396,6 +400,18 @@ username <TAB> tier <TAB> status <TAB> source <TAB> banned_flag <TAB> score
 
 The `score` column was appended in score model 2; consumers that read the first
 five columns keep working. `--min-score` filters the export too.
+
+Exports from `snipe` and `validate` contain **trusted** rows only: names the
+authenticated endpoint confirmed, or public hits confirmed against the
+canonical endpoint. A row the public screen merely failed to find is a hint,
+not a result, and is never exported by default — it lives in the database as
+`available` with `verified = 0` until something confirms it.
+
+To audit an older database, verify those rows rather than trusting them:
+
+```bash
+python verify_top_available.py --min-score 200   # auth-check public-only rows
+```
 
 ## API Endpoints
 
@@ -581,8 +597,14 @@ mc-og-name-hunter/
 ├── get_token.py                  # Device-code login -> data/mojang_token.txt
 ├── audit_wordlists.py            # Two-phase word-list audit (public + auth)
 ├── verify_banlist.py             # Re-check the banlist against the APIs
-├── score_report.py                # Score distribution / tie report
-├── find_rarest_available.py       # Search for the N rarest available names
+├── generate_missing_wordlists.py # Fills word-list coverage gaps (leet, shapes, languages)
+├── generate_rare_categories.py   # Rare pattern lists (repeaters, palindromes, numerals)
+├── score_rare_lists.py           # Scores the generated rare-category lists
+├── score_report.py               # Score distribution / tie report
+├── find_rarest_available.py      # Search for the N rarest available names
+├── sweep_unchecked.py            # Sweep a score band the other scripts never reached
+├── recheck_high_scores.py        # Re-test every stored name at/above a score
+├── verify_top_available.py       # Auth-verify public-only rows above a score
 ├── data/
 │   ├── checked.db                # SQLite database (created at runtime, git-ignored)
 │   ├── available.txt             # Exported trusted names (git-ignored)
@@ -595,7 +617,8 @@ mc-og-name-hunter/
 │   └── word_lists/               # Word lists by tier + themed overrides
 └── src/
     ├── config.py                # Config loading + defaults
-    ├── models.py                # Data models + rarity overrides
+    ├── rarity.py                # Banded 0-1000 desirability score
+    ├── models.py                # Data models + rarity overrides (re-exports rarity)
     ├── storage.py               # SQLite persistence
     ├── rate_limiter.py          # Token bucket rate limiter
     ├── auth.py                  # Access-token lookup (env var + cached file)
@@ -604,6 +627,8 @@ mc-og-name-hunter/
     ├── display.py               # Clean live display
     ├── paths.py                 # Source/frozen asset paths
     └── cli.py                   # Command-line interface
+├── tests/                      # pytest suite (scoring, migration, generators)
+└── .github/workflows/tests.yml # CI: runs pytest on every push and pull request
 ```
 
 ## Running in Background

@@ -192,6 +192,25 @@ def test_export_has_score_column_and_honours_min_score(tmp_path):
     assert out_none.read_text(encoding="utf-8") == ""
 
 
+def test_get_available_scopes_are_explicit(tmp_path):
+    """Each flag combination means exactly one thing.
+
+    ``verified_only=False, trusted_only=False`` used to return unverified
+    rows only, silently dropping every auth-verified hit.
+    """
+    db = tmp_path / "legacy.db"
+    _make_legacy_db(db, LEGACY_ROWS)
+    storage = Storage(str(db))
+
+    def names(**kwargs):
+        return {r.username for r in storage.get_available(**kwargs)}
+
+    assert names() == {"harbor", "zq"}
+    assert names(verified_only=True, trusted_only=False) == {"zq"}
+    # Every available row, including the ones the public screen left unverified.
+    assert names(verified_only=False, trusted_only=False) == {"harbor", "6633", "zq"}
+
+
 def test_stats_report_model_version(tmp_path):
     db = tmp_path / "legacy.db"
     _make_legacy_db(db, LEGACY_ROWS)
