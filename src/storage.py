@@ -22,7 +22,7 @@ from src.models import (
 
 #: Bump when the scoring model *or its data* (wordlist hints) changes; rows
 #: with another value are rescored on open, without touching availability.
-SCORE_MODEL = 4
+SCORE_MODEL = 5
 
 #: Statuses that do not count as "checked": they are retried on the next run.
 RETRYABLE_STATUSES = (CheckStatus.ERROR.value, CheckStatus.RATE_LIMITED.value)

@@ -375,6 +375,32 @@ def _german_words() -> frozenset[str]:
     return frozenset(words)
 
 
+@lru_cache(maxsize=1)
+def _german_og_words() -> frozenset[str]:
+    """German words common enough to rate as OG (``german_og.txt``).
+
+    ``german.txt`` is wide: it also holds administrative and technical words
+    (``bistum``, ``belagerung``, ``bushaltestelle``) that wordfreq puts on its
+    3.6 floor.  Only the common end keeps the OG class; the rest falls to
+    semi-OG, where an obscure long word belongs.  The cut is precomputed by
+    ``generate_german_og.py`` because the frozen build ships English wordfreq
+    data only.
+    """
+    words: set[str] = set()
+    path = resource_path("data", "word_lists", "german_og.txt")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                word = line.split("\t")[0].strip().lower()
+                if word.isalpha():
+                    words.add(word)
+    except OSError:
+        # Older data directories have no filtered list: fall back to the full
+        # dictionary rather than silently losing German support.
+        return _german_words()
+    return frozenset(words)
+
+
 @dataclass(frozen=True)
 class _Pattern:
     regex: re.Pattern
@@ -539,11 +565,13 @@ def classify(username: str) -> NameClass:
         cls = _classify_mixed(name)
 
     # German words rate alongside English ones (OG).  Only promote when the
-    # English model has no strong word signal: german.txt is a frequency list
-    # and contains some anglicisms ("days", "shadow"), so a name that already
-    # reads as a common English word keeps its English class.
-    if cls.base < 600 and _zipf(name) < 3.5 and name in _german_words():
-        cls = _CLASS_BY_KEY["og"]
+    # English model has no strong word signal, and only for words common in
+    # German: german.txt is a wide lemma list whose obscure tail (bistum,
+    # belagerung, bushaltestelle) does not deserve an OG score.
+    if cls.base < 600 and _zipf(name) < 3.5:
+        stem = _german_stem(name)
+        if name in _german_og_words() or (stem and stem in _german_og_words()):
+            cls = _CLASS_BY_KEY["og"]
 
     floor = _load_rarity_overrides().get(name, 0)
     if floor > cls.base:

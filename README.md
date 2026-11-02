@@ -358,7 +358,11 @@ reclaim-risk penalty for brand/meme names in
 `data/word_lists/reclaim_risk.txt`. Inflected forms are pushed to the bottom
 of their band: English `-ing/-ed/-es/-s` and German case/number endings
 (`legte`, `arztes`, `bahnen`) rank below their uninflected neighbours, because
-a grammatical form of a word is a weaker name than the word itself. Frequency
+a grammatical form of a word is a weaker name than the word itself. German
+words only reach the OG class when they are common in German
+(`zipf_frequency(word, "de") >= 4.0`, list in `data/word_lists/german_og.txt`),
+so `haus`/`wasser` rate as OG while the obscure tail of `german.txt`
+(`bistum`, `belagerung`, `bushaltestelle`) does not. Frequency
 is used only where it is meaningful (word classes); in shape classes
 `wordfreq` returns noise for
 abbreviation-like strings. Because the raw components are concentrated, each
@@ -448,7 +452,7 @@ Files in `data/word_lists/`:
 - `gaming_terms.txt` (~410 well-known gaming terms: `clutch`, `noscope`, `smurf`…)
 - `leet.txt` (1,700 community leet spellings: `n00b`, `tr0ll`, `gh0st`,
   `ph4ntom`, plus substitutions generated from common English words)
-- `german.txt` (~16,700 common German words — an explicit OG-class exception, 600+)
+- `german.txt` (~16,700 German lemmas; only the ~6,000 common ones promote to the OG class via `german_og.txt`)
 - `halloween.txt` (~150 spooky/Halloween words)
 - `minecraft_items.txt` (~2,890 names: hand-curated blocks, items, tools, armor, food, mobs, discs, enchantments (incl. in-game Roman level variants like `sharpnessV`/`sharpness_V`), villager professions, splash texts, generic game words like `armor`/`biome`/`spawn`, jockey mechanics like `chicken_jockey`, wood-type/wool-color/material×tool expansions, **plus every name from the PrismarineJS minecraft-data 26.1 registry** — items, blocks, entities, enchantments, effects, biomes)
 - Proper-noun lists from `generate_extra_wordlists.py`: `franchise_characters.txt`, `minecraft_ecosystem.txt`, `brands.txt`, `music_artists.txt`, `sports.txt`, `famous_people.txt`, `astronomy.txt`, `chemistry.txt` (names already present in the core corpus are dropped to avoid duplicate requests)
@@ -502,6 +506,7 @@ python generate_custom_wordlists.py # short combos, digits, underscores, faces, 
 python generate_extra_wordlists.py  # franchise/game, Minecraft, brands, music, sports, people, astronomy, chemistry
 python generate_themed_wordlists.py # multilingual, names, geo, nature, mythology, Wordle, tech, food, music, sports, space, MC, brands, compounds
 python generate_missing_wordlists.py # leet, underscore shapes, repeaters, esports/streamers, 17 extra languages, rare_names.txt
+python generate_german_og.py       # rebuild german_og.txt (German words at zipf(de) >= 4.0)
 ```
 
 `generate_extra_wordlists.py` downloads from PokeAPI/LoL/Valorant/Overwatch
@@ -598,6 +603,7 @@ mc-og-name-hunter/
 ├── audit_wordlists.py            # Two-phase word-list audit (public + auth)
 ├── verify_banlist.py             # Re-check the banlist against the APIs
 ├── generate_missing_wordlists.py # Fills word-list coverage gaps (leet, shapes, languages)
+├── generate_german_og.py       # Rebuilds german_og.txt (German frequency gate)
 ├── generate_rare_categories.py   # Rare pattern lists (repeaters, palindromes, numerals)
 ├── score_rare_lists.py           # Scores the generated rare-category lists
 ├── score_report.py               # Score distribution / tie report

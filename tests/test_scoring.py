@@ -189,7 +189,23 @@ def test_german_inflections_rank_below_uninflected_nouns():
     assert rarity._german_stem("bahn") is None
     # English words appear in german.txt ("because") and must not be flagged.
     assert rarity._german_stem("because") is None
-    assert score("legte") < score("bistum")
+    # An inflection of a common lemma stays in the OG band but ranks below
+    # the plain noun it inflects.
+    assert score("legte") < score("wasser")
+    assert classify("legte").key == "og"
+    assert classify("arztes").key == "og"
+
+
+def test_german_og_gate_drops_obscure_words():
+    """Only words common in German earn the OG promotion."""
+    common = rarity._german_og_words()
+    for word in ("haus", "wasser", "stadt", "hund"):
+        assert word in common
+    # german.txt's administrative/technical tail must not reach the OG band.
+    for word in ("bistum", "berlinale", "bushaltestelle", "belagerung"):
+        assert word not in common
+        assert classify(word).base < 350
+
 
 
 def test_reclaim_risk_is_flagged_and_penalised():
