@@ -148,21 +148,19 @@ class GracefulShutdown:
 
 
 def parse_tiers(tier_str: str) -> List[RarityTier]:
-    """Parse comma-separated tier string into list of RarityTier."""
+    """Parse comma-separated tier names, rejecting unknown or empty entries."""
     tier_map = {
         "top": RarityTier.TOP,
         "og": RarityTier.OG,
         "semi_og": RarityTier.SEMI_OG,
         "semi": RarityTier.SEMI_OG,
     }
-    tiers = []
-    for part in tier_str.split(","):
-        part = part.strip().lower()
-        if part in tier_map:
-            tiers.append(tier_map[part])
-        else:
-            print(f"Warning: Unknown tier '{part}', skipping")
-    return tiers or [RarityTier.TOP, RarityTier.OG, RarityTier.SEMI_OG]
+    parts = [part.strip().lower() for part in tier_str.split(",")]
+    invalid = [part for part in parts if part not in tier_map]
+    if invalid:
+        names = ", ".join(repr(part) for part in invalid)
+        raise ValueError(f"Unknown or empty tier(s): {names}. Choose top, og, or semi_og.")
+    return [tier_map[part] for part in parts]
 
 
 def parse_wordlist(spec: str) -> tuple[str, RarityTier, str]:
@@ -977,20 +975,21 @@ Environment:
                 f"--min-score {min_score}. Pass --min-score directly with a "
                 f"0-1000 value."
             )
+        try:
+            tiers = parse_tiers(args.tiers)
+            extra_lists = [parse_wordlist(spec) for spec in (args.wordlist or [])]
+        except ValueError as e:
+            print(f"Error: {e}")
+            return 2
         snipe_config = SnipeConfig(
             target_hits=args.hits,
             max_candidates=args.max_candidates,
-            tiers=parse_tiers(args.tiers),
+            tiers=tiers,
             verify_auth=not args.no_verify,
             output_file=args.output,
             min_score=min_score,
         )
         snipe_config.verify_all = args.verify_all
-        try:
-            extra_lists = [parse_wordlist(spec) for spec in (args.wordlist or [])]
-        except ValueError as e:
-            print(f"Error: {e}")
-            return 2
         return run_snipe(
             snipe_config,
             use_tui=args.tui,
