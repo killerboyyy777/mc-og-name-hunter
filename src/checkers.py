@@ -125,22 +125,27 @@ class AsyncPublicChecker:
         Third-party APIs only support simple alphanumeric usernames.
         Mojang endpoints support all valid username formats.
         """
-        # Third-party endpoints only support simple alphanumeric usernames
-        can_use_third_party = username.isalpha()
-        
-        if can_use_third_party:
-            # Can use any endpoint
-            healthy = [s for s in self.endpoint_stats.values() if s.is_healthy]
+        # Third-party endpoints only support simple alphabetic usernames.
+        # Keep the compatibility filter even when every eligible endpoint is
+        # unhealthy: falling back to all endpoints can send names with digits
+        # or underscores to mirrors that explicitly cannot check them.
+        if username.isalpha():
+            eligible = list(self.endpoint_stats.values())
         else:
-            # Only use Mojang endpoints for usernames with special chars
-            healthy = [s for s in self.endpoint_stats.values() 
-                      if s.is_healthy and ("mojang.com" in s.url)]
-        
-        if not healthy:
-            healthy = list(self.endpoint_stats.values())
-        
-        # Prefer least recently used among healthy endpoints
-        return min(healthy, key=lambda s: (s.error_rate, s.last_used)).url
+            eligible = [
+                stats for stats in self.endpoint_stats.values()
+                if self._is_canonical(stats.url)
+            ]
+
+        healthy = [stats for stats in eligible if stats.is_healthy]
+        candidates = healthy or eligible
+        if not candidates:
+            # A custom endpoint set may omit Mojang entirely. Do not silently
+            # send an unsupported username to an arbitrary mirror.
+            return CANONICAL_PUBLIC_ENDPOINT
+
+        # Prefer the healthiest, least recently used compatible endpoint.
+        return min(candidates, key=lambda stats: (stats.error_rate, stats.last_used)).url
     
     def _record_request(self, endpoint: str, success: bool, rate_limited: bool = False):
         """Record request outcome for endpoint health tracking."""
